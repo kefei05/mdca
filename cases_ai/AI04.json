@@ -1,0 +1,126 @@
+{
+  "schema": "1.0",
+  "case_id": "AI04",
+  "description": "【AI 组方案 4】Peddy→9.0 + Rrs→1.6",
+  "source_type": "ai",
+  "generator_id": "external LLM (user-provided output)",
+  "generator_version": "unknown",
+  "params": {
+    "Rws": {
+      "value": 1.16,
+      "unit": "K/W",
+      "palette": {
+        "method": "design_target",
+        "load_case": "continuous"
+      },
+      "verified": false,
+      "conservatism": "optimistic",
+      "source": "AI 生成，无独立验证：热阻"
+    },
+    "Rsa": {
+      "value": 2.03,
+      "unit": "K/W",
+      "palette": {
+        "method": "design_target",
+        "load_case": "continuous"
+      },
+      "verified": false,
+      "conservatism": "optimistic",
+      "source": "AI 生成，无独立验证：热阻"
+    },
+    "Rrs": {
+      "value": 1.6,
+      "unit": "K/W",
+      "palette": {
+        "method": "design_target",
+        "load_case": "continuous"
+      },
+      "verified": false,
+      "conservatism": "optimistic",
+      "source": "AI 生成，无独立验证：热阻"
+    },
+    "Pcu": {
+      "value": 13.6,
+      "unit": "W",
+      "palette": {
+        "method": "design_target",
+        "load_case": "continuous",
+        "temp_basis": "20C"
+      },
+      "verified": false,
+      "conservatism": "optimistic",
+      "source": "AI 生成，无独立验证：铜损"
+    },
+    "Pfe": {
+      "value": 5.33,
+      "unit": "W",
+      "palette": {
+        "method": "design_target",
+        "load_case": "continuous"
+      },
+      "verified": false,
+      "conservatism": "optimistic",
+      "source": "AI 生成，无独立验证：铁损"
+    },
+    "Peddy": {
+      "value": 9.0,
+      "unit": "W",
+      "palette": {
+        "method": "design_target",
+        "load_case": "continuous"
+      },
+      "verified": false,
+      "conservatism": "optimistic",
+      "source": "AI 生成，无独立验证：磁钢涡流"
+    },
+    "Ta": {
+      "value": 40.0,
+      "unit": "C",
+      "palette": {
+        "method": "design_target"
+      },
+      "verified": false,
+      "conservatism": "optimistic",
+      "source": "AI 生成，无独立验证"
+    },
+    "alpha": {
+      "value": 0.00393,
+      "unit": "1/K",
+      "palette": {
+        "method": "literature"
+      },
+      "verified": true
+    },
+    "Tref": {
+      "value": 20.0,
+      "unit": "C",
+      "palette": {
+        "method": "convention"
+      },
+      "verified": true
+    }
+  },
+  "limits": {
+    "Tw_max": 155.0,
+    "Tr_max": 150.0,
+    "temperature_type": "mean"
+  },
+  "calibration": {
+    "delta_cal_K": 33.0,
+    "source_type": "external_model_mismatch",
+    "fitted_on_same_points": false,
+    "model_similarity_assumed": true,
+    "gamma": 2.0
+  },
+  "domain": {
+    "Ta": [
+      10.0,
+      60.0
+    ]
+  },
+  "_ai_reported": {
+    "Tw": 89.15,
+    "Tr": 103.55,
+    "how": "Peddy→9.0 + Rrs→1.6"
+  }
+}
