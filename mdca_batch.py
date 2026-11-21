@@ -233,11 +233,24 @@ def _sample_low_temp(rng: random.Random, ta: float, target: float) -> Dict[str, 
     return p
 
 
-def cmd_generate(n: int = 120, seed: int = 20261121) -> int:
+def cmd_generate(n: int = 120, seed: int = 20261121, preset: str = "") -> int:
+    """生成候选与隐藏标签。
+
+    preset="blind" 时按 FREEZE.md 4.1 预注册的精确构成：
+        ample 62 / tight 18 / 植入 70 = 150
+    其他情况按 n 的比例分配（默认 40% / 12% / 48%）。
+    """
     if CASES_DIR.exists():
         shutil.rmtree(CASES_DIR)
     CASES_DIR.mkdir(parents=True)
     LABELS.parent.mkdir(parents=True, exist_ok=True)
+
+    if preset == "blind":
+        n_clean, n_tight, n_plant = 62, 18, 70
+    else:
+        n_clean = int(n * 0.40)
+        n_tight = int(n * 0.12)
+        n_plant = n - n_clean - n_tight   # 修正：此前漏减 n_tight，总数会超出 n
 
     rng = random.Random(seed)
     labels: Dict[str, Any] = {}
@@ -256,14 +269,12 @@ def cmd_generate(n: int = 120, seed: int = 20261121) -> int:
         }
 
     # 干净候选：点值 + Δ_cal 才是判定值，所以点值必须远低于限值
-    n_clean = int(n * 0.40)
     for i in range(n_clean):
         idx += 1
         p = _sample_clean(rng, 80.0)          # 80+33=113℃，再经 P0+20% 压力测试仍应合格
         emit(build_case(f"C{idx:03d}", p, source_type="optimizer"), [], "optimizer")
 
     # 裕度小的候选：点值 112~122 → +33 后 145~155，应进「继续优化」
-    n_tight = int(n * 0.12)
     for i in range(n_tight):
         idx += 1
         p = _sample_clean(rng, 122.0)
@@ -274,7 +285,6 @@ def cmd_generate(n: int = 120, seed: int = 20261121) -> int:
 
     # 植入候选
     planters: List[str] = list(PLANT_ACCEPT.keys())
-    n_plant = n - n_clean
     for i in range(n_plant):
         idx += 1
         kind = planters[i % len(planters)]
@@ -457,8 +467,24 @@ def cmd_evaluate(max_show: int = 6) -> int:
 def main(argv: List[str]) -> int:
     cmd = argv[0] if argv else "evaluate"
     if cmd == "generate":
-        n = int(argv[1]) if len(argv) > 1 else 120
-        return cmd_generate(n)
+        n = 120
+        seed = 20261121
+        preset = ""
+        rest = argv[1:]
+        i = 0
+        while i < len(rest):
+            a = rest[i]
+            if a == "--preset" and i + 1 < len(rest):
+                preset = rest[i + 1]; i += 2
+            elif a == "--seed" and i + 1 < len(rest):
+                seed = int(rest[i + 1]); i += 2
+            else:
+                try:
+                    n = int(a)
+                except ValueError:
+                    pass
+                i += 1
+        return cmd_generate(n, seed, preset)
     if cmd == "evaluate":
         return cmd_evaluate()
     print(__doc__)
