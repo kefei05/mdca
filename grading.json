@@ -1,0 +1,161 @@
+{
+  "schema": "1.0",
+  "version": "grading-1.2",
+  "created": "2026-11-21",
+  "note": "四档分级规则。改动必须升 version 并在 changelog 追加理由（纠偏基线第 9 节）。",
+  "changelog": [
+    {
+      "version": "grading-1.0",
+      "date": "2026-11-21",
+      "change": "初始版本。按纠偏基线 6.5 节 C1 建立四档，阈值取 margin_small_K=10。",
+      "reason": "阶段 D 的度量需要分级，故提前于阶段 C 建立最小版本。"
+    },
+    {
+      "version": "grading-1.1",
+      "date": "2026-11-21",
+      "change": "新增 E4_model_invalid：flags 含 model_invalid（linear_model_out_of_validity）时归淘汰，而不是人工复核。",
+      "reason": "阶段 D 首次实验发现：8 个植入「明确超温」的候选全部被 linear_model_out_of_validity 判成 MODEL_REVIEW，进而落入「人工复核」档，命中率 0%。但温度远超限值（>1.5×Tw_max）在工程上显然是淘汰，不是「需要人再看一眼」。这不是放宽判定，是把显然的淘汰归位。"
+    },
+    {
+      "version": "grading-1.2",
+      "date": "2026-11-21",
+      "change": "为三个阈值补上依据链（thresholds.basis），并标注它们的证据等级。阈值数值本身不变。",
+      "reason": "阶段 C 的 C3 要求「阈值必须有明确数值和依据」。原 v1.1 的 10 / 25 / 5 是工程约定，没有出处。现按阶段 E 实测的模型残差反推：结构残差 4.34 K（跨工况 Ts）+ 边界响应 3.36 K（ΔTa=+20K 时的偏差）= 7.70 K 作为下限，往上取整得 10 K。仍是工程约定，但依据可追溯。"
+    }
+  ],
+
+  "tiers": ["eliminate", "refine", "manual", "external"],
+
+  "tier_labels": {
+    "eliminate": "淘汰",
+    "refine": "继续优化",
+    "manual": "人工复核",
+    "external": "送外部"
+  },
+
+  "block_kinds": {
+    "hard_violation": [
+      "P0_contract",
+      "P1_source_hash",
+      "V1_missing",
+      "V1_unit",
+      "V3_palette_mix",
+      "V5_interval",
+      "V6_positive"
+    ],
+    "data_issue": [
+      "V2_unverified",
+      "V2_optimistic",
+      "S0_scaling_input"
+    ]
+  },
+
+  "thresholds": {
+    "margin_small_K": 10.0,
+    "margin_ample_K": 25.0,
+    "near_limit_band_K": 5.0
+  },
+
+  "thresholds_basis": {
+    "evidence_level": "工程约定（派生自阶段 E 实测残差，非文献值，非实测标定）",
+    "margin_small_K": {
+      "value": 10.0,
+      "derivation": "阶段 E 实测模型残差下限 7.70 K = 跨工况结构残差 4.34 K（Ts）+ 边界响应偏差 3.36 K（ΔTa=+20K 时 20-16.64）；向上取整到 10 K 并留约 30% 余量",
+      "meaning": "判定温度距限值不足 10 K 的方案进「继续优化」，因为它扛不住模型的已知偏差",
+      "limitation": "残差来自单台水冷电机（Motor-CAD EV_5）。自然对流/机身导热电机的残差未测，该阈值对它们可能偏松或偏紧。"
+    },
+    "margin_ample_K": {
+      "value": 25.0,
+      "derivation": "margin_small_K（10）+ 压力测试 P0+20% 的典型温升影响（约 15 K，按 g≈0.2 时 Tw 随 Pcu 近似线性增长估算）",
+      "meaning": "留足 25 K 才允许进「送外部」，保证它在压力测试下不翻转",
+      "limitation": "15 K 是对 g≈0.2 工况的估算；g 接近 1 时该影响会远大于 15 K。"
+    },
+    "near_limit_band_K": {
+      "value": 5.0,
+      "derivation": "约等于 2× 热电偶不确定度（±2 K）+ 1 K；与阶段 E 的跨工况残差量级（2~4 K）同阶",
+      "meaning": "距限值 5 K 以内视为「贴边」，对任何建模误差都敏感",
+      "limitation": "这是判据而非测量；若校准点的温度类型（mean/hotspot）不明，5 K 毫无意义"
+    }
+  },
+
+  "rules": [
+    {
+      "id": "E1_model_fail",
+      "tier": "eliminate",
+      "when": { "overall_status": ["MODEL_FAIL"] },
+      "reason": "模型层明确超限"
+    },
+    {
+      "id": "E2_coupling_failed",
+      "tier": "eliminate",
+      "when": { "overall_status": ["COUPLING_FAILED"] },
+      "reason": "热反馈失稳或迭代不收敛"
+    },
+    {
+      "id": "E3_hard_violation",
+      "tier": "eliminate",
+      "when": { "block_kind": ["hard_violation"] },
+      "reason": "明确违规（契约/哈希/单位/口径冲突/负值/区间）"
+    },
+    {
+      "id": "E4_model_invalid",
+      "tier": "eliminate",
+      "when": { "flags": ["model_invalid"] },
+      "reason": "温度远超限值（>1.5×Tw_max），线性模型已失效，工程上显然淘汰"
+    },
+    {
+      "id": "M1_review_or_unknown",
+      "tier": "manual",
+      "when": { "overall_status": ["MODEL_REVIEW", "SOLVER_UNKNOWN"] },
+      "reason": "结论不确定，需人工判定"
+    },
+    {
+      "id": "M2_data_issue",
+      "tier": "manual",
+      "when": { "block_kind": ["data_issue"] },
+      "reason": "数据未验证或声明为乐观方向，需人工确认来源"
+    },
+    {
+      "id": "M3_no_calibration",
+      "tier": "manual",
+      "when": { "calibration_present": [false] },
+      "reason": "无校准，PASS 不可推荐（纠偏基线 C2）"
+    },
+    {
+      "id": "M4_out_of_domain",
+      "tier": "manual",
+      "when": { "flags": ["out_of_domain"] },
+      "reason": "超出校准适用域"
+    },
+    {
+      "id": "M5_extrapolation",
+      "tier": "manual",
+      "when": { "flags": ["extrapolation"] },
+      "reason": "几何外推超出缩放律可信范围"
+    },
+    {
+      "id": "M6_stress_flipped",
+      "tier": "manual",
+      "when": { "flags": ["stress_flipped"] },
+      "reason": "压力测试导致结论翻转"
+    },
+    {
+      "id": "R1_small_margin",
+      "tier": "refine",
+      "when": { "margin_below": "margin_small_K" },
+      "reason": "温度裕度小于阈值，值得继续优化"
+    },
+    {
+      "id": "R2_near_limit",
+      "tier": "refine",
+      "when": { "distance_to_limit_below": "near_limit_band_K" },
+      "reason": "贴近约束边界，对扰动敏感"
+    },
+    {
+      "id": "X1_eligible",
+      "tier": "external",
+      "when": { "overall_status": ["POINT_PASS", "BOX_PASS"] },
+      "reason": "通过审计、校准有效、在适用域内、裕度充足"
+    }
+  ]
+}

@@ -1,0 +1,149 @@
+{
+  "schema": "1.0",
+  "case_id": "N11_out_of_domain",
+  "description": "环境温度超出校准域",
+  "source_type": "human",
+  "params": {
+    "Rws": {
+      "value": 0.5,
+      "interval": [
+        0.9,
+        1.45
+      ],
+      "unit": "K/W",
+      "palette": {
+        "turns": "6",
+        "method": "analytic",
+        "end_winding": "included"
+      },
+      "verified": true,
+      "source": "基线档案 2.2c ⑧（槽内 0.54 + 端部加权）"
+    },
+    "Rsa": {
+      "value": 1.0,
+      "interval": [
+        1.5,
+        2.6
+      ],
+      "unit": "K/W",
+      "palette": {
+        "turns": "6",
+        "method": "analytic",
+        "scope": "motor"
+      },
+      "verified": true,
+      "source": "R2 接触 0.03 + R3 机身导热 2.0"
+    },
+    "Pcu": {
+      "value": 8.0,
+      "interval": [
+        13.6,
+        13.8
+      ],
+      "unit": "W",
+      "palette": {
+        "turns": "6",
+        "method": "analytic",
+        "end_winding": "included",
+        "load_case": "continuous"
+      },
+      "verified": true,
+      "source": "3I²R，I=15.9 A rms、R=18 mΩ"
+    },
+    "Pfe": {
+      "value": 3.0,
+      "interval": [
+        4.0,
+        6.5
+      ],
+      "unit": "W",
+      "palette": {
+        "turns": "6",
+        "method": "analytic",
+        "load_case": "continuous"
+      },
+      "verified": false,
+      "conservatism": "conservative",
+      "source": "斯坦梅茨解析，FEM 未产出"
+    },
+    "Peddy": {
+      "value": 0.0,
+      "unit": "W",
+      "palette": {
+        "turns": "6",
+        "dim": "2D",
+        "method": "fem",
+        "load_case": "continuous"
+      },
+      "verified": false,
+      "conservatism": "conservative",
+      "source": "2D 带载瞬态磁钢涡流，未轴向分段上界"
+    },
+    "Rrs": {
+      "value": 3.0,
+      "unit": "K/W",
+      "palette": {
+        "turns": "6",
+        "method": "analytic"
+      },
+      "verified": false,
+      "conservatism": "conservative",
+      "source": "气隙静止导热 3.47，旋转对流后取 3.0，未校准"
+    },
+    "Ta": {
+      "value": 70.0,
+      "interval": [
+        25.0,
+        45.0
+      ],
+      "unit": "C",
+      "palette": {
+        "method": "design_target"
+      },
+      "verified": true
+    },
+    "alpha": {
+      "value": 0.00393,
+      "unit": "1/K",
+      "palette": {
+        "method": "literature"
+      },
+      "verified": true
+    },
+    "Tref": {
+      "value": 20.0,
+      "unit": "C",
+      "palette": {
+        "method": "convention"
+      },
+      "verified": true
+    }
+  },
+  "limits": {
+    "Tw_max": 155.0,
+    "Tr_max": 150.0,
+    "temperature_type": "mean"
+  },
+  "calibration": {
+    "delta_cal_K": 33.0,
+    "source_type": "external_model_mismatch",
+    "fitted_on_same_points": false,
+    "model_similarity_assumed": true,
+    "gamma": 2.0,
+    "note": "AIP Advances 2023 Fig.4(b) 最大正残差 16.5 K × 2（C 档）"
+  },
+  "domain": {
+    "Ta": [
+      10.0,
+      60.0
+    ],
+    "Pcu": [
+      5.0,
+      30.0
+    ]
+  },
+  "_expect": {
+    "status": "MODEL_REVIEW",
+    "reason_contains": "D1_out_of_domain"
+  }
+}

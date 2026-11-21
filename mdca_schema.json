@@ -1,0 +1,190 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://mdca.local/schema/candidate-1.0.json",
+  "title": "MDCA 候选方案",
+  "description": "MDCA 审计器的统一候选输入契约。版本 1.0。任何字段变更必须升 version 并在 CHANGES 记录。",
+  "type": "object",
+  "required": ["schema", "case_id", "params", "limits"],
+  "additionalProperties": true,
+
+  "properties": {
+    "schema": {
+      "description": "契约版本，当前固定为 1.0",
+      "const": "1.0"
+    },
+    "case_id": {
+      "description": "候选唯一标识，用作账本主键",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$"
+    },
+    "description": { "type": "string", "maxLength": 500 },
+
+    "source_type": {
+      "description": "候选来源。AI 生成的必须标 ai，便于统计拦截率",
+      "enum": ["ai", "optimizer", "human", "external"]
+    },
+    "generator_id": {
+      "description": "生成器标识（模型名 / 优化算法名 / 人名）",
+      "type": "string"
+    },
+    "generator_version": { "type": "string" },
+    "created": { "description": "ISO 8601 时间", "type": "string" },
+    "benchmark": {
+      "description": "所属基准电机标识；空表示这是真实候选而非基准",
+      "type": "string"
+    },
+
+    "params": {
+      "description": "设计参数与运行参数。键为参数名，值为 Param 对象",
+      "type": "object",
+      "required": ["Rws", "Rsa", "Pcu", "Pfe", "Ta"],
+      "properties": {
+        "Rws": { "$ref": "#/definitions/param" },
+        "Rsa": { "$ref": "#/definitions/param" },
+        "Pcu": { "$ref": "#/definitions/param" },
+        "Pfe": { "$ref": "#/definitions/param" },
+        "Ta":  { "$ref": "#/definitions/param" },
+        "Peddy": { "$ref": "#/definitions/param" },
+        "Rrs": { "$ref": "#/definitions/param" },
+        "alpha": { "$ref": "#/definitions/param" },
+        "Tref": { "$ref": "#/definitions/param" }
+      },
+      "additionalProperties": { "$ref": "#/definitions/param" }
+    },
+
+    "limits": {
+      "type": "object",
+      "required": ["Tw_max"],
+      "properties": {
+        "Tw_max": {
+          "description": "绕组温度上限 ℃。必须与选用的绝缘等级一致",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "Tr_max": {
+          "description": "磁钢温度上限 ℃。缺省 150（N42SH）",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "temperature_type": {
+          "description": "温度定义。mean 与 hotspot 在本项目已实测差 40 K，不可混用",
+          "enum": ["mean", "hotspot"]
+        }
+      }
+    },
+
+    "calibration": {
+      "description": "校准记录。source_type 为空则视为未校准，PASS 一律降级",
+      "type": "object",
+      "properties": {
+        "delta_cal_K": { "type": "number", "minimum": 0 },
+        "source_type": {
+          "enum": ["external_model_mismatch", "measured", "simulation_hifi", null]
+        },
+        "fitted_on_same_points": { "type": "boolean" },
+        "model_similarity_assumed": { "type": "boolean" },
+        "gamma": { "type": "number", "minimum": 1 },
+        "note": { "type": "string" }
+      }
+    },
+
+    "domain": {
+      "description": "校准适用域。键为参数名，值为 [lo, hi]；候选超出即降级",
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "number" },
+        "minItems": 2,
+        "maxItems": 2
+      }
+    },
+
+    "scaling": {
+      "description": "几何缩放律。给了它就用缩放结果覆盖 Rws/Rsa/Rrs",
+      "type": "object",
+      "required": ["reference_geometry", "reference_R", "geometry"],
+      "properties": {
+        "reference_geometry": { "$ref": "#/definitions/geometry" },
+        "geometry": { "$ref": "#/definitions/geometry" },
+        "reference_R": {
+          "type": "object",
+          "required": ["Rws", "Rsa", "Rrs"],
+          "properties": {
+            "Rws": { "type": "number" },
+            "Rsa": { "type": "number" },
+            "Rrs": { "type": "number" }
+          }
+        },
+        "relative_uncertainty": { "type": "number", "minimum": 0, "maximum": 1 },
+        "max_deviation": { "type": "number", "minimum": 0, "maximum": 5 }
+      }
+    },
+
+    "sources": {
+      "description": "外部数据来源与哈希。缺失或哈希不符 ⇒ 拒绝计算",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path"],
+        "properties": {
+          "path": { "type": "string" },
+          "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "note": { "type": "string" }
+        }
+      }
+    }
+  },
+
+  "definitions": {
+    "param": {
+      "type": "object",
+      "required": ["value", "unit"],
+      "additionalProperties": false,
+      "properties": {
+        "value": { "type": "number" },
+        "unit": { "type": "string" },
+        "interval": {
+          "description": "[lo, hi]，给了才跑区间审计",
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "palette": {
+          "description": "口径指纹。字段见 mdca_palette.PALETTE_FIELDS",
+          "type": "object",
+          "properties": {
+            "turns": { "type": "string" },
+            "dim": { "enum": ["2D", "3D"] },
+            "method": { "enum": ["analytic", "analytic_scaled", "fem", "fem_transient", "measured", "design_target", "literature", "convention"] },
+            "end_winding": { "enum": ["included", "excluded"] },
+            "scope": { "enum": ["motor", "module"] },
+            "load_case": { "enum": ["continuous", "peak", "rated", "short_circuit"] },
+            "current_basis": { "enum": ["rms", "peak"] },
+            "temp_basis": { "type": "string" },
+            "baseline": { "type": "string" },
+            "convergence": { "enum": ["converged", "not_converged"] },
+            "verified": { "type": "boolean" }
+          }
+        },
+        "verified": { "type": "boolean" },
+        "conservatism": { "enum": ["conservative", "optimistic"] },
+        "source": { "type": "string" }
+      }
+    },
+
+    "geometry": {
+      "type": "object",
+      "required": ["Z", "P_slot", "L", "D_gap", "g", "A_case", "L_ins"],
+      "properties": {
+        "Z": { "description": "槽数", "type": "number", "exclusiveMinimum": 0 },
+        "P_slot": { "description": "单槽周长 mm", "type": "number", "exclusiveMinimum": 0 },
+        "L": { "description": "叠长 mm", "type": "number", "exclusiveMinimum": 0 },
+        "D_gap": { "description": "气隙直径 mm", "type": "number", "exclusiveMinimum": 0 },
+        "g": { "description": "气隙宽 mm", "type": "number", "exclusiveMinimum": 0 },
+        "A_case": { "description": "壳体/安装面散热面积 m²", "type": "number", "exclusiveMinimum": 0 },
+        "L_ins": { "description": "绕组到槽壁等效厚度 mm", "type": "number", "exclusiveMinimum": 0 }
+      }
+    }
+  }
+}

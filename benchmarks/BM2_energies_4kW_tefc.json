@@ -1,0 +1,57 @@
+{
+  "schema": "1.0",
+  "case_id": "BM2-energies-4kW-tefc",
+  "benchmark": "BM2",
+  "description": "【基准 2】4 kW 风冷 TEFC 感应电机。取自 Energies 2021,14(6578) 的表格数据；热阻与损耗均为反推值",
+  "source_type": "external",
+  "benchmark_note": "假设数据，仅测试通用性：Ta 与 Tw_max 论文未明确给出，按常规取值；Pcu/Pol 由两个稳态温度点联立反推（fitted_on_same_points）",
+  "params": {
+    "Rws": {
+      "value": 0.070,
+      "unit": "K/W",
+      "palette": { "method": "analytic", "scope": "motor" },
+      "verified": true,
+      "source": "Energies Table 2 的 Req,w（原文直接给出）"
+    },
+    "Rsa": {
+      "value": 0.1162,
+      "unit": "K/W",
+      "palette": { "method": "analytic", "scope": "motor" },
+      "verified": true,
+      "source": "Table 2 的 Req,sr=0.382 与 Rfc=0.167 按并联合并（拓扑为推断）"
+    },
+    "Pcu": {
+      "value": 260.8,
+      "unit": "W",
+      "palette": { "method": "analytic", "load_case": "rated", "end_winding": "included" },
+      "verified": false,
+      "source": "由两个稳态温度点联立反推（20℃ 基准），非论文直接给出"
+    },
+    "Pfe": {
+      "value": 270.0,
+      "unit": "W",
+      "palette": { "method": "analytic", "load_case": "rated" },
+      "verified": false,
+      "source": "同上反推的 Pol（铁损+转子+机械）"
+    },
+    "Ta": {
+      "value": 20.0,
+      "unit": "C",
+      "palette": { "method": "convention" },
+      "verified": false,
+      "source": "论文未明确给环境温度，按图 6/17 起始温度推断"
+    },
+    "alpha": { "value": 0.00393, "unit": "1/K", "palette": { "method": "literature" }, "verified": true },
+    "Tref": { "value": 20.0, "unit": "C", "palette": { "method": "convention" }, "verified": true }
+  },
+  "limits": { "Tw_max": 155.0, "temperature_type": "mean" },
+  "calibration": {
+    "delta_cal_K": 0.0,
+    "source_type": null,
+    "fitted_on_same_points": true,
+    "model_similarity_assumed": false,
+    "gamma": 2.0,
+    "note": "本基准未做独立校准；热阻与损耗均来自同一批温度点，残差不可用"
+  },
+  "domain": { "Ta": [10.0, 40.0], "Pcu": [200.0, 320.0] }
+}

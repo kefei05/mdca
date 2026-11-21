@@ -1,0 +1,87 @@
+﻿{
+  "schema": "1.0",
+  "case_id": "joint-B-natural-convection",
+  "description": "同一台电机，仅靠外壳自然对流（不接机身导热）",
+  "params": {
+    "Rws": {
+      "value": 1.16,
+      "interval": [0.90, 1.45],
+      "unit": "K/W",
+      "palette": { "turns": "6", "method": "analytic", "end_winding": "included" },
+      "verified": true,
+      "source": "同 A 算例"
+    },
+    "Rsa": {
+      "value": 5.93,
+      "interval": [4.50, 7.00],
+      "unit": "K/W",
+      "palette": { "turns": "6", "method": "analytic", "scope": "motor" },
+      "verified": true,
+      "source": "R2 接触 0.03 + R3 自然对流 5.9（h≈10 W/m²K，A≈0.017 m²）"
+    },
+    "Pcu": {
+      "value": 13.6,
+      "interval": [13.6, 13.8],
+      "unit": "W",
+      "palette": { "turns": "6", "method": "analytic", "end_winding": "included", "load_case": "continuous" },
+      "verified": true,
+      "source": "同 A 算例"
+    },
+    "Pfe": {
+      "value": 5.33,
+      "interval": [4.0, 6.5],
+      "unit": "W",
+      "palette": { "turns": "6", "method": "analytic", "load_case": "continuous" },
+      "verified": false,
+      "conservatism": "conservative",
+      "source": "同 A 算例"
+    },
+    "Ta": {
+      "value": 40.0,
+      "interval": [25.0, 45.0],
+      "unit": "C",
+      "palette": { "method": "design_target" },
+      "verified": true,
+      "source": "同 A 算例"
+    },
+    "Peddy": {
+      "value": 15.24,
+      "unit": "W",
+      "palette": { "turns": "6", "dim": "2D", "method": "fem", "load_case": "continuous" },
+      "verified": false,
+      "conservatism": "conservative",
+      "source": "同 A 算例（未分段上界）"
+    },
+    "Rrs": {
+      "value": 3.0,
+      "unit": "K/W",
+      "palette": { "turns": "6", "method": "analytic" },
+      "verified": false,
+      "conservatism": "conservative",
+      "source": "同 A 算例"
+    },
+    "alpha": {
+      "value": 0.00393,
+      "unit": "1/K",
+      "palette": { "method": "literature" },
+      "verified": true
+    },
+    "Tref": {
+      "value": 20.0,
+      "unit": "C",
+      "palette": { "method": "convention" },
+      "verified": true
+    }
+  },
+  "limits": { "Tw_max": 155.0, "Tr_max": 150.0, "temperature_type": "mean" },
+  "calibration": {
+    "delta_cal_K": 33.0,
+    "source_type": "external_model_mismatch",
+    "fitted_on_same_points": false,
+    "model_similarity_assumed": true,
+    "gamma": 2.0,
+    "note": "同 A 算例"
+  },
+  "domain": { "Ta": [10.0, 60.0], "Pcu": [5.0, 30.0] }
+}
+

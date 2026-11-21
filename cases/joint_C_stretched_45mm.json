@@ -1,0 +1,96 @@
+{
+  "schema": "1.0",
+  "case_id": "joint-C-stretched-45mm",
+  "description": "候选方案：叠长 30→45 mm、散热面积同比放大，其余不变。热阻由几何缩放律给出",
+  "params": {
+    "Rws": {
+      "value": 1.16,
+      "unit": "K/W",
+      "palette": { "turns": "6", "method": "analytic", "end_winding": "included" },
+      "verified": true,
+      "source": "占位：将被 scaling 段覆盖"
+    },
+    "Rsa": {
+      "value": 2.03,
+      "unit": "K/W",
+      "palette": { "turns": "6", "method": "analytic", "scope": "motor" },
+      "verified": true,
+      "source": "占位：将被 scaling 段覆盖"
+    },
+    "Pcu": {
+      "value": 13.6,
+      "interval": [13.6, 13.8],
+      "unit": "W",
+      "palette": { "turns": "6", "method": "analytic", "end_winding": "included", "load_case": "continuous" },
+      "verified": true,
+      "source": "3·I²·R，I=15.9 A rms、R=18 mΩ（含端部）；叠长变化时按匝数/电阻不变处理"
+    },
+    "Pfe": {
+      "value": 5.33,
+      "interval": [4.0, 6.5],
+      "unit": "W",
+      "palette": { "turns": "6", "method": "analytic", "load_case": "continuous" },
+      "verified": false,
+      "conservatism": "conservative",
+      "source": "斯坦梅茨解析估算；叠长加长会略增铁损，此处保守取原值"
+    },
+    "Ta": {
+      "value": 40.0,
+      "interval": [25.0, 45.0],
+      "unit": "C",
+      "palette": { "method": "design_target" },
+      "verified": true,
+      "source": "关节装于臂内，舱温 40℃ 设计假设"
+    },
+    "Peddy": {
+      "value": 15.24,
+      "unit": "W",
+      "palette": { "turns": "6", "dim": "2D", "method": "fem", "load_case": "continuous" },
+      "verified": false,
+      "conservatism": "conservative",
+      "source": "未轴向分段上界"
+    },
+    "Rrs": {
+      "value": 3.0,
+      "unit": "K/W",
+      "palette": { "turns": "6", "method": "analytic" },
+      "verified": true,
+      "source": "占位：将被 scaling 段覆盖"
+    },
+    "alpha": {
+      "value": 0.00393,
+      "unit": "1/K",
+      "palette": { "method": "literature" },
+      "verified": true
+    },
+    "Tref": {
+      "value": 20.0,
+      "unit": "C",
+      "palette": { "method": "convention" },
+      "verified": true
+    }
+  },
+  "limits": { "Tw_max": 155.0, "Tr_max": 150.0, "temperature_type": "mean" },
+  "calibration": {
+    "delta_cal_K": 33.0,
+    "source_type": "external_model_mismatch",
+    "fitted_on_same_points": false,
+    "model_similarity_assumed": true,
+    "gamma": 2.0,
+    "note": "同 A 算例"
+  },
+  "domain": { "Ta": [10.0, 60.0], "Pcu": [5.0, 30.0] },
+  "scaling": {
+    "reference_geometry": {
+      "Z": 12, "P_slot": 35.0, "L": 30.0, "D_gap": 70.6, "g": 0.6,
+      "A_case": 0.017, "L_ins": 1.5
+    },
+    "reference_R": { "Rws": 1.16, "Rsa": 2.03, "Rrs": 3.0 },
+    "geometry": {
+      "Z": 12, "P_slot": 35.0, "L": 45.0, "D_gap": 70.6, "g": 0.6,
+      "A_case": 0.0255, "L_ins": 1.5
+    },
+    "relative_uncertainty": 0.25,
+    "max_deviation": 0.30
+  }
+}

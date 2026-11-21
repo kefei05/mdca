@@ -1,0 +1,5 @@
+﻿# MDCA 运行时无第三方依赖，仅使用 Python 标准库。
+# 要求 Python >= 3.9（使用 dict 合并与 dataclass）
+
+# 可选：仅在重新从 PDF 提取文献数据时需要（见 refs/REFERENCES.md）
+# pdfplumber>=0.10

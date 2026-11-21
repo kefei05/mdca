@@ -1,0 +1,119 @@
+{
+  "schema": "1.0",
+  "case_id": "BM3-mcad-ev5-waterjacket",
+  "benchmark": "BM3",
+  "description": "【基准 3】48 槽水套冷却电机（Motor-CAD 教程 EV_5_Thermal）。热阻由 65℃ 工况三点温度反推，节点功率分区得损耗",
+  "source_type": "external",
+  "benchmark_note": "假设数据，仅测试通用性：Tw_max 取 180℃（H 级）为假设，教程未声明绝缘等级；实测最高节点 159.5℃",
+  "params": {
+    "Rws": {
+      "value": 0.110515,
+      "unit": "K/W",
+      "palette": {
+        "method": "analytic",
+        "scope": "motor"
+      },
+      "verified": false,
+      "source": "由 Motor-CAD 65℃ 工况 (Tw-Ts)/Pcu 反推（fitted）"
+    },
+    "Rsa": {
+      "value": 0.038786,
+      "unit": "K/W",
+      "palette": {
+        "method": "analytic",
+        "scope": "motor"
+      },
+      "verified": false,
+      "source": "由 (Ts-Ta)/Ptot 反推（fitted）"
+    },
+    "Rrs": {
+      "value": 0.664453,
+      "unit": "K/W",
+      "palette": {
+        "method": "analytic"
+      },
+      "verified": false,
+      "source": "由 (Tr-Ts)/Peddy 反推（fitted）"
+    },
+    "Pcu": {
+      "value": 372.913,
+      "unit": "W",
+      "palette": {
+        "method": "fem",
+        "load_case": "rated",
+        "end_winding": "included",
+        "temp_basis": "20C"
+      },
+      "verified": false,
+      "source": "Motor-CAD 工况值 571.489 W（绕组 155.496℃ 时）按 1+α·ΔT 折算到 20℃ 基准；不折算会让热反馈迭代放大 64 K"
+    },
+    "Pfe": {
+      "value": 32.197,
+      "unit": "W",
+      "palette": {
+        "method": "fem",
+        "load_case": "rated"
+      },
+      "verified": false,
+      "source": "其余节点功率合计（含铁损与杂散）"
+    },
+    "Peddy": {
+      "value": 101.152,
+      "unit": "W",
+      "palette": {
+        "method": "fem",
+        "load_case": "rated"
+      },
+      "verified": false,
+      "source": "node 62 功率（转子侧独立热源）"
+    },
+    "Ta": {
+      "value": 65.0,
+      "unit": "C",
+      "palette": {
+        "method": "measured"
+      },
+      "verified": true,
+      "source": "冷却液入口温度（模型设定值 HousingWJ_Inlet_Temperature）"
+    },
+    "alpha": {
+      "value": 0.00393,
+      "unit": "1/K",
+      "palette": {
+        "method": "literature"
+      },
+      "verified": true
+    },
+    "Tref": {
+      "value": 20.0,
+      "unit": "C",
+      "palette": {
+        "method": "convention"
+      },
+      "verified": true
+    }
+  },
+  "limits": {
+    "Tw_max": 180.0,
+    "Tr_max": 180.0,
+    "temperature_type": "hotspot"
+  },
+  "calibration": {
+    "delta_cal_K": 5.0,
+    "source_type": "simulation_hifi",
+    "fitted_on_same_points": false,
+    "model_similarity_assumed": false,
+    "gamma": 2.0,
+    "note": "占位校准：真实值待 E 阶段跨工况残差确认；当前 5 K 为估计"
+  },
+  "domain": {
+    "Ta": [
+      45.0,
+      105.0
+    ],
+    "Pcu": [
+      350.0,
+      400.0
+    ]
+  }
+}

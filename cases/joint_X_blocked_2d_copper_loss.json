@@ -1,0 +1,68 @@
+{
+  "schema": "1.0",
+  "case_id": "joint-X-blocked-2d-copper-loss",
+  "description": "反例演示：把 2D 铜损（不含端部）直接当热载荷送进热计算，应被硬拦截",
+  "params": {
+    "Rws": {
+      "value": 1.16,
+      "interval": [0.90, 1.45],
+      "unit": "K/W",
+      "palette": { "turns": "6", "method": "analytic", "end_winding": "included" },
+      "verified": true,
+      "source": "端部加权后的等效热阻"
+    },
+    "Rsa": {
+      "value": 2.03,
+      "interval": [1.50, 2.60],
+      "unit": "K/W",
+      "palette": { "turns": "6", "method": "analytic", "scope": "motor" },
+      "verified": true,
+      "source": "R2 + R3"
+    },
+    "Pcu": {
+      "value": 7.67,
+      "interval": [7.67, 7.67],
+      "unit": "W",
+      "palette": { "turns": "6", "dim": "2D", "method": "fem", "end_winding": "excluded", "load_case": "continuous" },
+      "verified": true,
+      "source": "2D 求解域内铜损 —— 不含端部，与端部加权热阻不匹配"
+    },
+    "Pfe": {
+      "value": 5.33,
+      "interval": [4.0, 6.5],
+      "unit": "W",
+      "palette": { "turns": "6", "method": "analytic", "load_case": "continuous" },
+      "verified": false,
+      "conservatism": "conservative",
+      "source": "同 A 算例"
+    },
+    "Ta": {
+      "value": 40.0,
+      "interval": [25.0, 45.0],
+      "unit": "C",
+      "palette": { "method": "design_target" },
+      "verified": true
+    },
+    "alpha": {
+      "value": 0.00393,
+      "unit": "1/K",
+      "palette": { "method": "literature" },
+      "verified": true
+    },
+    "Tref": {
+      "value": 20.0,
+      "unit": "C",
+      "palette": { "method": "convention" },
+      "verified": true
+    }
+  },
+  "limits": { "Tw_max": 155.0, "temperature_type": "mean" },
+  "calibration": {
+    "delta_cal_K": 33.0,
+    "source_type": "external_model_mismatch",
+    "fitted_on_same_points": false,
+    "model_similarity_assumed": true,
+    "gamma": 2.0
+  },
+  "domain": { "Ta": [10.0, 60.0], "Pcu": [5.0, 30.0] }
+}

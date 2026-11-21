@@ -1,0 +1,124 @@
+{
+  "schema": "1.0",
+  "case_id": "E3_interval_crosses",
+  "description": "区间跨越限值（两节点，避免转子判据掩盖）",
+  "source_type": "human",
+  "params": {
+    "Rws": {
+      "value": 1.16,
+      "interval": [
+        0.9,
+        1.45
+      ],
+      "unit": "K/W",
+      "palette": {
+        "turns": "6",
+        "method": "analytic",
+        "end_winding": "included"
+      },
+      "verified": true,
+      "source": "基线档案 2.2c ⑧（槽内 0.54 + 端部加权）"
+    },
+    "Rsa": {
+      "value": 2.03,
+      "interval": [
+        2.0,
+        4.0
+      ],
+      "unit": "K/W",
+      "palette": {
+        "turns": "6",
+        "method": "analytic",
+        "scope": "motor"
+      },
+      "verified": true,
+      "source": "R2 接触 0.03 + R3 机身导热 2.0"
+    },
+    "Pcu": {
+      "value": 13.6,
+      "interval": [
+        13.6,
+        13.8
+      ],
+      "unit": "W",
+      "palette": {
+        "turns": "6",
+        "method": "analytic",
+        "end_winding": "included",
+        "load_case": "continuous"
+      },
+      "verified": true,
+      "source": "3I²R，I=15.9 A rms、R=18 mΩ"
+    },
+    "Pfe": {
+      "value": 5.33,
+      "interval": [
+        4.0,
+        6.5
+      ],
+      "unit": "W",
+      "palette": {
+        "turns": "6",
+        "method": "analytic",
+        "load_case": "continuous"
+      },
+      "verified": false,
+      "conservatism": "conservative",
+      "source": "斯坦梅茨解析，FEM 未产出"
+    },
+    "Ta": {
+      "value": 40.0,
+      "interval": [
+        25.0,
+        45.0
+      ],
+      "unit": "C",
+      "palette": {
+        "method": "design_target"
+      },
+      "verified": true
+    },
+    "alpha": {
+      "value": 0.00393,
+      "unit": "1/K",
+      "palette": {
+        "method": "literature"
+      },
+      "verified": true
+    },
+    "Tref": {
+      "value": 20.0,
+      "unit": "C",
+      "palette": {
+        "method": "convention"
+      },
+      "verified": true
+    }
+  },
+  "limits": {
+    "Tw_max": 155.0,
+    "temperature_type": "mean"
+  },
+  "calibration": {
+    "delta_cal_K": 0.0,
+    "source_type": "external_model_mismatch",
+    "fitted_on_same_points": false,
+    "model_similarity_assumed": true,
+    "gamma": 2.0,
+    "note": "本算例刻意置零校准裕度，用于单独检验「区间跨界」分支"
+  },
+  "domain": {
+    "Ta": [
+      10.0,
+      60.0
+    ],
+    "Pcu": [
+      5.0,
+      30.0
+    ]
+  },
+  "_expect": {
+    "status": "MODEL_REVIEW",
+    "reason_contains": "temperature_bound_crosses_limit"
+  }
+}

@@ -1,0 +1,34 @@
+# ---- 运行产物 ----
+out/
+*.log
+*_stdout.txt
+
+# ---- 隐藏标签：盲测必须用新种子重新生成，旧标签不得进仓库 ----
+labels/
+
+# ---- 阶段 D 的批量生成产物（可用 mdca_batch.py 重生成） ----
+cases_batch/
+
+# ---- 论文 PDF 与全文提取文本（版权）：只保留引用信息，见 refs/REFERENCES.md ----
+refs/*.pdf
+refs/*.txt
+
+# ---- Motor-CAD / AEDT 工程文件与运行日志 ----
+*.mot
+*.aedt
+*.aedtresults
+*.aedt.lock
+*.chm
+**/MessageLogs/
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# ---- 系统 ----
+.DS_Store
+Thumbs.db
+desktop.ini
