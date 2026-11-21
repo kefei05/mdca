@@ -361,17 +361,53 @@ def validate(case: Case) -> List[Issue]:
 
 
 def check_domain(case: Case) -> List[Issue]:
-    """方案 11.10：候选超出校准适用域 ⇒ MODEL_REVIEW。"""
+    """方案 11.10：候选超出校准适用域 ⇒ MODEL_REVIEW。
+
+    domain 支持两种写法：
+        [lo, hi]                                   旧形式，无参考温度声明
+        {"interval": [lo, hi], "temp_basis": "20C"} 新形式，可做机器校验
+
+    参考温度一致性（P2_temp_basis，2026-11-22 新增）：
+        domain 的区间与 params 的值若不在同一参考温度下，超域判断无意义。
+        曾出现的错误：Pcu 已折算到 20℃（372.9 W），domain 却按工况值写（540~600 W），
+        于是把合格候选误判为超域。这条就是把它从文档约定改成机器检查。
+    """
     issues: List[Issue] = []
     domain = case.domain or {}
     if not domain:
         return issues
-    for key, rng in domain.items():
+    for key, spec in domain.items():
+        if isinstance(spec, dict):
+            rng = spec.get("interval")
+            dom_tb = spec.get("temp_basis")
+        else:
+            rng = spec
+            dom_tb = None
         if not (isinstance(rng, (list, tuple)) and len(rng) == 2):
             continue
         p = case.params.get(key)
         if p is None:
             continue
+
+        # ---- 参考温度一致性（新） ----
+        # palette 是 Palette 数据类，不是 dict —— 用 getattr 读，不要 isinstance(dict)
+        prm_tb = getattr(p.palette, "temp_basis", None) if p.palette is not None else None
+        if prm_tb or dom_tb:
+            if not prm_tb or not dom_tb:
+                issues.append(Issue(
+                    "P2_temp_basis", "BLOCK",
+                    f"{key} 的 domain 与 params 参考温度必须同时声明："
+                    f"params={'已声明 ' + prm_tb if prm_tb else '未声明'}，"
+                    f"domain={'已声明 ' + dom_tb if dom_tb else '未声明'}",
+                    (key,), {"params_temp_basis": prm_tb, "domain_temp_basis": dom_tb}))
+            elif prm_tb != dom_tb:
+                issues.append(Issue(
+                    "P2_temp_basis", "BLOCK",
+                    f"{key} 的 domain 参考温度 {dom_tb} 与 params 的 {prm_tb} 不一致，"
+                    f"超域判断无意义",
+                    (key,), {"params_temp_basis": prm_tb, "domain_temp_basis": dom_tb}))
+            continue  # 口径未对齐时不继续做超域判断，避免给出误导性结论
+
         # 用 value 与 interval 的并集：只看 interval 会漏掉「点值越界但区间没改」的情况，
         # 只看 value 会漏掉「区间端点越界」。两者都要覆盖。
         lo_t, hi_t = p.value, p.value

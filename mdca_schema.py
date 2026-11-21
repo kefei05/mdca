@@ -153,9 +153,19 @@ def validate_document(doc: Any) -> List[str]:
         if not isinstance(dom, dict):
             errs.append("domain 必须是对象")
         else:
-            for k, rng in dom.items():
-                if not (isinstance(rng, list) and len(rng) == 2 and all(_is_num(v) for v in rng)):
-                    errs.append(f"domain.{k} 必须是 [lo, hi] 两个数字")
+            for k, spec in dom.items():
+                # 两种写法：[lo, hi] 或 {"interval": [lo, hi], "temp_basis": "20C"}
+                if isinstance(spec, dict):
+                    rng = spec.get("interval")
+                    tb = spec.get("temp_basis")
+                    if not (isinstance(rng, list) and len(rng) == 2 and all(_is_num(v) for v in rng)):
+                        errs.append(f"domain.{k}.interval 必须是 [lo, hi] 两个数字")
+                    elif rng[0] > rng[1]:
+                        errs.append(f"domain.{k}.interval 下界大于上界")
+                    if tb is not None and not isinstance(tb, str):
+                        errs.append(f"domain.{k}.temp_basis 必须是字符串")
+                elif not (isinstance(spec, list) and len(spec) == 2 and all(_is_num(v) for v in spec)):
+                    errs.append(f"domain.{k} 必须是 [lo, hi] 或 {{interval, temp_basis}}")
 
     sc = doc.get("scaling")
     if sc is not None:

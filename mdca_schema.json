@@ -89,13 +89,34 @@
     },
 
     "domain": {
-      "description": "校准适用域。键为参数名，值为 [lo, hi]；候选超出即降级",
+      "description": "校准适用域。两种写法：[lo, hi]，或 {\"interval\": [lo, hi], \"temp_basis\": \"20C\"}。若 params 某参数带 palette.temp_basis，则 domain 同键必须用带 temp_basis 的对象形式，且两者必须相等——否则超域判断无意义（机器检查见 mdca.py 的 P2_temp_basis）。",
       "type": "object",
       "additionalProperties": {
-        "type": "array",
-        "items": { "type": "number" },
-        "minItems": 2,
-        "maxItems": 2
+        "oneOf": [
+          {
+            "type": "array",
+            "items": { "type": "number" },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          {
+            "type": "object",
+            "required": ["interval"],
+            "additionalProperties": false,
+            "properties": {
+              "interval": {
+                "type": "array",
+                "items": { "type": "number" },
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "temp_basis": {
+                "description": "该区间的参考温度，必须与 params 同名参数的 palette.temp_basis 一致",
+                "type": "string"
+              }
+            }
+          }
+        ]
       }
     },
 
