@@ -107,7 +107,8 @@ for rec in AI_RAW:
     (OUT / f"AI{i:02d}.json").write_text(
         json.dumps(raw, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    o = audit(parse_case_doc(raw, f"AI{i:02d}"))
+    # v0.2 的实验结论依赖温度；第 2 步把 B 路改成默认关后，脚本必须自己声明。
+    o = audit(parse_case_doc(raw, f"AI{i:02d}"), plugins=("thermal", "scaling"))
     g = G.grade(o, cfg)
     tw_real, tr_real = bypass_solve(rws, rsa, rrs, pcu, pfe, peddy)
 

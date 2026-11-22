@@ -146,5 +146,9 @@
   "_expect": {
     "status": "SOLVER_UNKNOWN",
     "reason_contains": "V5_interval"
+  },
+  "_expect_a": {
+    "status": "AUDIT_BLOCKED",
+    "reason_contains": "V5_interval"
   }
 }

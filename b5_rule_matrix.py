@@ -22,7 +22,8 @@ rows = []
 all_codes = set()
 for f in BMS:
     case = load_case(f)
-    o = audit(case)
+    # v0.2 的实验结论依赖温度；第 2 步把 B 路改成默认关后，脚本必须自己声明。
+    o = audit(case, plugins=("thermal", "scaling"))
     codes = set()
     for i in (o.get("validation") or {}).get("issues", []):
         if i.get("severity") in ("BLOCK", "REVIEW"):

@@ -354,7 +354,7 @@ def cmd_evaluate(max_show: int = 6) -> int:
     results: Dict[str, Dict[str, Any]] = {}
     for f in files:
         case = load_case(f)
-        rep = audit(case)                       # 输入只有 case，无标签信息
+        rep = audit(case, plugins=("thermal", "scaling"))  # 输入只有 case，无标签信息
         g = G.grade(rep, cfg)
         results[case.case_id] = {
             "status": (rep.get("audit") or {}).get("overall_status"),

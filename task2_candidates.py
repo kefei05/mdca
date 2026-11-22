@@ -75,7 +75,8 @@ for i, ta in enumerate(TA_LIST, 1):
     raw = build(i, ta)
     (OUT / f"{raw['case_id']}.json").write_text(
         json.dumps(raw, ensure_ascii=False, indent=2), encoding="utf-8")
-    o = audit(parse_case_doc(raw, raw["case_id"]))
+    # v0.2 的实验结论依赖温度；第 2 步把 B 路改成默认关后，脚本必须自己声明。
+    o = audit(parse_case_doc(raw, raw["case_id"]), plugins=("thermal", "scaling"))
     g = G.grade(o, cfg)
     t = o.get("temperature") or {}
     rows.append({

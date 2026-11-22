@@ -22,7 +22,8 @@ for ta in (20, 25, 30, 35):
     raw = build(99, ta)
     raw["case_id"] = f"T2X-Ta{ta}"
     raw["domain"] = {"Ta": [15.0, 110.0]}
-    o = audit(parse_case_doc(raw, raw["case_id"]))
+    # v0.2 的实验结论依赖温度；第 2 步把 B 路改成默认关后，脚本必须自己声明。
+    o = audit(parse_case_doc(raw, raw["case_id"]), plugins=("thermal", "scaling"))
     g = G.grade(o, cfg)
     t = o.get("temperature") or {}
     cands[ta] = {

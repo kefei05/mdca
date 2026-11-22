@@ -158,5 +158,9 @@
   "_expect": {
     "status": "SOLVER_UNKNOWN",
     "reason_contains": "S0_scaling_input"
+  },
+  "_expect_a": {
+    "status": "AUDIT_BLOCKED",
+    "reason_contains": "P0_contract"
   }
 }

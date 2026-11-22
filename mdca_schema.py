@@ -31,7 +31,11 @@ SCHEMA_VERSION = "1.0"
 CASE_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$")
 
 REQUIRED_TOP = ("schema", "case_id", "params", "limits")
-REQUIRED_PARAMS = ("Rws", "Rsa", "Pcu", "Pfe", "Ta")
+# A 路契约：只要求「有损耗、有环境」。
+# Rws/Rsa 的必需性由 thermal 插件在运行时检查（code=V1_plugin_missing），
+# 因为 A 路不产生温度，就不该强迫上游先交出热阻——那正是「借热阻」的入口
+# （见 项目复盘与路线转向.md §2 第一层）。
+REQUIRED_PARAMS = ("Pcu", "Pfe", "Ta")
 SOURCE_TYPES = ("ai", "optimizer", "human", "external")
 TEMP_TYPES = ("mean", "hotspot")
 CONSERVATISM = ("conservative", "optimistic")
@@ -251,6 +255,9 @@ def selftest() -> bool:
 
     d = base(); del d["params"]["Pcu"]
     check("缺必需参数 Pcu → 拒", d, False)
+
+    d = base(); del d["params"]["Rws"]; del d["params"]["Rsa"]
+    check("缺 Rws/Rsa（A 路可选）→ 通过", d, True)
 
     d = base(); d["params"]["Rws"]["interval"] = [2.0, 1.0]
     check("区间倒置 → 拒", d, False)

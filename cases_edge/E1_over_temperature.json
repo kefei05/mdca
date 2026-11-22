@@ -145,5 +145,8 @@
   "_expect": {
     "status": "MODEL_FAIL",
     "reason_contains": "temperature_exceeds_limit"
+  },
+  "_expect_a": {
+    "status": "AUDIT_PASS"
   }
 }
