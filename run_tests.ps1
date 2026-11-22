@@ -31,6 +31,7 @@ Step "thermal 插件 8"  "python mdca_plugin_thermal.py"
 Step "scaling 插件 4"  "python mdca_plugin_scaling.py"
 Step "mdca B 路 10"    "python mdca.py selftest --plugins thermal,scaling"
 Step "check B 路 17+MC" "python mdca.py check 300 --plugins thermal,scaling"
+Step "B 路基线 34"     "python baseline_b_road.py --diff"
 
 Write-Host ""
 Write-Host "===== 汇总 =====" -ForegroundColor Yellow

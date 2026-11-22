@@ -18,9 +18,11 @@
 
 | 文件 | 行数 | 职责 |
 |---|---|---|
-| `mdca_plugins.py` | ~330 | 插件注册表、四级开关解析、延迟加载、异常兜底。**不含任何物理逻辑，也不 import 业务模块**（否则与 `mdca.py` 成环） |
-| `mdca_plugin_thermal.py` | ~330 | 原 `mdca.py` 的温度计算段：`to_cas` / `to_cas3` / `to_boxcas` / `uses_three_node` / `has_intervals` + 点值 → 区间 → 压力测试的合成 |
-| `mdca_plugin_scaling.py` | ~150 | 原 `mdca.py` 的 `apply_scaling`：几何缩放律 → `Rws/Rsa/Rrs` + 外推检查 |
+| `mdca_plugins.py` | 268 | 插件注册表、四级开关解析、延迟加载、异常兜底。**不含任何物理逻辑，也不 import 业务模块**（否则与 `mdca.py` 成环） |
+| `mdca_plugin_thermal.py` | 280 | 原 `mdca.py` 的温度计算段：`to_cas` / `to_cas3` / `to_boxcas` / `uses_three_node` / `has_intervals` + 点值 → 区间 → 压力测试的合成 |
+| `mdca_plugin_scaling.py` | 131 | 原 `mdca.py` 的 `apply_scaling`：几何缩放律 → `Rws/Rsa/Rrs` + 外推检查 |
+| `baseline_b_road.py` | 140 | B 路回归基线工具（§5 的证据） |
+| `baselines/v0.2_b_road.json` | — | 改前（`c691c49`）34 个算例的结论快照 |
 
 ### 2.2 改动
 
@@ -100,11 +102,10 @@ mdca_checks.py       随机回代          —— 一字未改（只被 B 路自
 
 ## 5. B 路逐行等价的证据
 
-改前先跑了一份基线（`out/_baseline_b.json`，34 个算例 × 14 个字段），改后逐字段对比：
+改前先跑了一份基线（`baselines/v0.2_b_road.json`，34 个算例 × 14 个字段），改后逐字段对比：
 
 ```text
-python out/_baseline.py          # 改前：写基线
-python out/_baseline.py --diff   # 改后：对比
+python baseline_b_road.py --diff
 → 共 34 个算例，差异 0 个
 ```
 
@@ -273,7 +274,7 @@ python mdca.py selftest --plugins thermal,scaling
 python mdca.py check 300 --plugins thermal,scaling
 
 # 零差异证明
-python out\_baseline.py --diff      # 期望：差异 0 个
+python baseline_b_road.py --diff      # 期望：差异 0 个
 
 # 一键全量
 powershell -NoProfile -ExecutionPolicy Bypass -File run_tests.ps1
