@@ -120,6 +120,46 @@ blocks / reviews / warns / infos / stress_flipped / model_nodes
 
 对比覆盖的算例：`cases/` 4 + `benchmarks/` 3 + `cases_negative/` 13 + `cases_edge/` 4 + `cases_ai/` 10。
 
+### 5.1 这条证据的强度（不要高估）
+
+34 条记录零差异，但真正走到温度计算路径的只有 11 条：
+
+| 路径 | 算例数 |
+|---|---|
+| `CONVERGED`（真算了温度） | 11 |
+| 其中走三节点 | 9 |
+| 其中产出了区间 | 9 |
+| 其中压力测试发生翻转 | 2 |
+| 其余在 `BLOCK` 或 `COUPLING_FAILED` 处早退 | 23 |
+
+意思是：`solve` / `judge` / `stress_test` 的核心逻辑确实被覆盖了，但**状态叠加的组合覆盖有限**——§7.2 那个「`COUPLING_FAILED` 吞掉 `D1`」的问题，正是这类组合从来没被看见的结果。
+
+### 5.2 顺带发现的静默覆盖（已修）
+
+`joint-C-stretched-45mm` 文件里手填 `Rws = 1.16`，同时又带 `scaling` 段。缩放律把
+
+```text
+Rws  1.16  → 0.7733 K/W
+Rsa  2.03  → 1.3533 K/W
+Rrs  3.0   → 2.0   K/W
+```
+
+读 JSON 的人会以为 1.16 生效，实际算温度用的是 0.77。**报告里也没有任何提示。**
+
+修复：新增 `S3_params_overwritten`（INFO）与结果字段 `params_overwritten`，报告里独立显示一行：
+
+```text
+缩放覆盖：Rws 手填 1.16 → 缩放 0.7733 K/W；Rsa 手填 2.03 → 缩放 1.3533 K/W
+```
+
+这是本次唯一改变输出的地方（其余 33 个算例一字未动），基线已按
+
+```text
+python baseline_b_road.py --write --force-since "新增 S3_params_overwritten 提示..."
+```
+
+重写并附了理由。**同类的第二个**在 `N12_extrapolation`，行为一致。
+
 ---
 
 ## 6. 契约变更：热阻从「必需」改为「可选」

@@ -484,17 +484,39 @@ def audit(case: Case, plugins: Any = None) -> Dict[str, Any]:
 
     # ---- scaling（可选）：先跑，因为它改写 Rws/Rsa/Rrs ----
     scaling_result: Optional[Dict[str, Any]] = None
+    overwritten: List[Dict[str, Any]] = []
     if "scaling" in active:
         out = _run_plugin_into("scaling", case, issues)
         if out.get("ok"):
             for k, raw in (out.get("answer", {}).get("derived") or {}).items():
+                old = case.params.get(k)
                 try:
-                    case.params[k] = _mk_param(k, raw)
+                    new = _mk_param(k, raw)
                 except Exception as e:  # noqa: BLE001
                     issues.append(Issue(
                         "B0_plugin_bad_param", "BLOCK",
                         f"scaling 插件给出的 {k} 无法解析：{type(e).__name__}", (k,)))
+                    continue
+                if old is not None and abs(old.value - new.value) > 1e-9:
+                    overwritten.append({
+                        "param": k,
+                        "declared": old.value,
+                        "scaled": new.value,
+                        "unit": new.unit,
+                        "declared_source": old.source,
+                    })
+                case.params[k] = new
             scaling_result = out.get("answer", {}).get("result")
+            if overwritten:
+                # 静默覆盖是本项目最危险的失败方式：case 里手填的 Rws 被缩放值换掉，
+                # 而读文件的人以为手填的生效。这里记一条 INFO 并单独存字段，报告里必须显示。
+                issues.append(Issue(
+                    "S3_params_overwritten", "INFO",
+                    "几何缩放覆盖了 case 里手填的值：" + "；".join(
+                        f"{d['param']} {d['declared']}→{d['scaled']} {d['unit']}"
+                        for d in overwritten),
+                    tuple(d["param"] for d in overwritten),
+                    {"overwritten": overwritten}))
     elif case.scaling:
         issues.append(Issue(
             "B1_scaling_skipped", "INFO",
@@ -567,6 +589,7 @@ def audit(case: Case, plugins: Any = None) -> Dict[str, Any]:
             "review_count": len(review),
         },
         "scaling": scaling_result,
+        "params_overwritten": overwritten,
         "provenance": {
             "case_hash": case_hash,
             "code_digest": code_digest,
@@ -703,6 +726,11 @@ def print_report(o: Dict[str, Any]) -> None:
     act = p.get("active") or []
     print(f"  插件：{', '.join(act) if act else '(无，A 路)'}"
           f"   来源={p.get('source')}")
+    ow = o.get("params_overwritten") or []
+    if ow:
+        print("  缩放覆盖：" + "；".join(
+            f"{d['param']} 手填 {d['declared']} → 缩放 {d['scaled']} {d['unit']}"
+            for d in ow))
     print(f"  校验：{'BLOCKED' if v.get('blocked') else 'OK'}"
           f"（block {v.get('block_count', 0)} / review {v.get('review_count', 0)}）")
     for i in v.get("issues", []):

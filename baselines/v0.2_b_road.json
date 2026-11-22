@@ -124,6 +124,7 @@
   "coupling": "CONVERGED",
   "infos": [
    "S1_scaling_applied",
+   "S3_params_overwritten",
    "V2_conservative"
   ],
   "interval": [
@@ -727,6 +728,7 @@
   "coupling": "CONVERGED",
   "infos": [
    "S1_scaling_applied",
+   "S3_params_overwritten",
    "V2_conservative"
   ],
   "interval": [
