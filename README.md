@@ -70,7 +70,13 @@ python mdca.py check 300 --plugins thermal,scaling
 python road_a_backtest.py             # 五大真实数据集，70 条断言
 python mdca_inverter.py selftest      # 反推器判据（12 条）
 python baseline_b_road.py --diff      # B 路 34 算例与基线逐字段对比
-powershell -File run_tests.ps1        # 全部 16 项
+
+# 批量审查外部候选（把一堆审计结果变成可行动的分类）
+python mdca_review.py cases_ai/                        # 控制台 + out/review.json
+python mdca_review.py cases_ai/ --md out/review_ai.md  # 额外写 Markdown 报告
+python mdca_review.py cases/ cases_negative/ cases_ai/  # 一次审多批
+
+powershell -File run_tests.ps1        # 全部 17 项
 ```
 
 ---
@@ -342,6 +348,45 @@ Rrs ∝ g / (λ_air · A_gap)          A_gap = π · D_gap · L
   最大低估 62.7 K，加 33 K 裕度后仍剩 4 点
 ```
 
+### 8.1 批量审查：把审计结果变成可行动的分类
+
+`mdca_review.py` 不是「再跑一遍 audit」，而是把一批结果分成**五类**，每类对应一个动作：
+
+| 分类 | 判据 | 该怎么处理 |
+|---|---|---|
+| **物理不可能** | 电磁链或热守恒被证伪（`C1~C3` / `I1~I4`） | 直接淘汰；已证伪，不是待确认项 |
+| **格式不对** | 任何非 `V2_` 的 BLOCK（契约/单位/口径/哈希/负值） | 让对方按契约重交 |
+| **数据没来源** | 只有 `V2_*` | 找来源或补 conservatism 声明，**不是找错** |
+| **待人工确认** | REVIEW（超域/外推/基准豁免） | 人看一眼 |
+| **全干净** | `AUDIT_PASS` | 可进下一轮 |
+
+优先级是刻意排的：**「连比较都做不了」比「数据能用但不知真伪」更根本**，所以只要存在任何非 `V2_` 的 BLOCK，就不能归入「数据没来源」。
+
+还会做两件 audit 本身不做的事：
+
+```text
+① 错法指纹聚合：把 detail 里的 Tw_fingerprint / Tr_fingerprint 一并抽出，
+   按「code[Tw=..., Tr=...]」统计。出现 ≥3 次标为「系统性」——
+   同一批数据反复出现同一个指纹，是生成器的一致缺陷，不是个别笔误
+
+② 盲区提示：case 带 scaling 段但缩放插件没启用时明确写在报告里。
+   这类 case 的结论是「没审」，不是「没问题」——
+   不提示的话，「全干净」会被读成「没问题」
+```
+
+实际效果（`cases/` + `cases_negative/` + `cases_ai/` 共 27 条）：
+
+```text
+物理不可能 10  (37.0%)
+格式不对   10  (37.0%)
+数据没来源  2  ( 7.4%)
+待人工确认  1  ( 3.7%)
+全干净      4  (14.8%)
+
+错法指纹：I1_kcl_violation[Tw=kcl_missing_pcu_in_rsa, Tr=topo_rotor_on_winding]  10  ← 系统性
+盲区提示：3 条 case 有 scaling 段但缩放插件未启用
+```
+
 ---
 
 ## 九、测试
@@ -440,9 +485,11 @@ B 路插件（默认关）
 
 工具
   road_a_backtest.py     560 行  五大真实数据集回测（70 条断言）
+  mdca_review.py         560 行  批量审查外部候选（五类分类 + 指纹聚合 + 盲区提示）
   baseline_b_road.py     140 行  B 路回归基线（--diff 必须差异 0）
+  mdca_batch.py          423 行  生成候选 + 植入问题 + 度量（阶段 D 实验复现）
   b5_rule_matrix.py      118 行  规则适用性矩阵
-  run_tests.ps1                 16 项一键自测
+  run_tests.ps1                 17 项一键自测
 
 数据
   cases/                        4 条主算例
