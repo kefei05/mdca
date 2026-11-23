@@ -156,7 +156,7 @@
     "max_deviation": 0.3
   },
   "_expect": {
-    "status": "SOLVER_UNKNOWN",
+    "status": "AUDIT_BLOCKED",
     "reason_contains": "S0_scaling_input"
   },
   "_expect_a": {

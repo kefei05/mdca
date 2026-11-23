@@ -128,7 +128,7 @@
     ]
   },
   "_expect": {
-    "status": "SOLVER_UNKNOWN",
+    "status": "AUDIT_BLOCKED",
     "reason_contains": "V1_missing"
   },
   "_expect_a": {

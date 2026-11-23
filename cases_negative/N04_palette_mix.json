@@ -144,7 +144,7 @@
     ]
   },
   "_expect": {
-    "status": "SOLVER_UNKNOWN",
+    "status": "AUDIT_BLOCKED",
     "reason_contains": "V3_palette_mix"
   },
   "_expect_a": {

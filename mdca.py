@@ -687,11 +687,11 @@ def audit(case: Case, plugins: Any = None) -> Dict[str, Any]:
             "reason": "blocked_by_validation",
         }
         result["temperature"] = None
-        # A 路：输入被审出硬伤，这批数据不可用
-        # B 路：沿用旧词 SOLVER_UNKNOWN（热求解因输入被拦而未运行），
-        #       以保证 v0.2 的 16 条边界算例期望值仍然成立（见第 2 步变更记录）
+        # 输入被判死，与「是否算温度」无关：A 路与 B 路统一报 AUDIT_BLOCKED。
+        # 只有「求解器没给出结论」（插件失败 / 插件缺参）才报 SOLVER_UNKNOWN——
+        # 前者是数据不可用，后者是求解器不可用，两个概念不能混。
         result["audit"] = {
-            "overall_status": AUDIT_BLOCKED if "thermal" not in active else "SOLVER_UNKNOWN",
+            "overall_status": AUDIT_BLOCKED,
             "reasons": ["input_blocked: " + ", ".join(sorted({i.code for i in blocked}))],
         }
         return result
@@ -979,9 +979,9 @@ def cmd_selftest(plugins: Any = None) -> int:
 
     print("=== mdca.py 冒烟测试（A 路）===")
 
-    # B 路被拦时沿用旧词 SOLVER_UNKNOWN，A 路用 AUDIT_BLOCKED。
-    # 这条差异是刻意的（见第 2 步变更记录），所以测试要按路断言，不能只断言「被拦」。
-    expect_block = "SOLVER_UNKNOWN" if "thermal" in active else AUDIT_BLOCKED
+    # 输入被判死统一报 AUDIT_BLOCKED（A 路与 B 路一致）：
+    # AUDIT_BLOCKED = 数据不可用；SOLVER_UNKNOWN = 求解器没给出结论（插件失败/缺参）。
+    expect_block = AUDIT_BLOCKED
 
     # 1) 缺必需参数 → BLOCK
     c = Case("t1", "", {k: Param(k, 1.0, u, Palette(method="analytic"))

@@ -162,7 +162,7 @@
    "input_blocked: V3_palette_mix"
   ],
   "reviews": [],
-  "status": "SOLVER_UNKNOWN",
+  "status": "AUDIT_BLOCKED",
   "stress_flipped": null,
   "warns": []
  },
@@ -182,7 +182,7 @@
    "input_blocked: V2_optimistic"
   ],
   "reviews": [],
-  "status": "SOLVER_UNKNOWN",
+  "status": "AUDIT_BLOCKED",
   "stress_flipped": null,
   "warns": []
  },
@@ -202,7 +202,7 @@
    "input_blocked: V2_optimistic"
   ],
   "reviews": [],
-  "status": "SOLVER_UNKNOWN",
+  "status": "AUDIT_BLOCKED",
   "stress_flipped": null,
   "warns": []
  },
@@ -222,7 +222,7 @@
    "input_blocked: V2_optimistic"
   ],
   "reviews": [],
-  "status": "SOLVER_UNKNOWN",
+  "status": "AUDIT_BLOCKED",
   "stress_flipped": null,
   "warns": []
  },
@@ -242,7 +242,7 @@
    "input_blocked: V2_optimistic"
   ],
   "reviews": [],
-  "status": "SOLVER_UNKNOWN",
+  "status": "AUDIT_BLOCKED",
   "stress_flipped": null,
   "warns": []
  },
@@ -262,7 +262,7 @@
    "input_blocked: V2_optimistic"
   ],
   "reviews": [],
-  "status": "SOLVER_UNKNOWN",
+  "status": "AUDIT_BLOCKED",
   "stress_flipped": null,
   "warns": []
  },
@@ -282,7 +282,7 @@
    "input_blocked: V2_optimistic"
   ],
   "reviews": [],
-  "status": "SOLVER_UNKNOWN",
+  "status": "AUDIT_BLOCKED",
   "stress_flipped": null,
   "warns": []
  },
@@ -302,7 +302,7 @@
    "input_blocked: V2_optimistic"
   ],
   "reviews": [],
-  "status": "SOLVER_UNKNOWN",
+  "status": "AUDIT_BLOCKED",
   "stress_flipped": null,
   "warns": []
  },
@@ -322,7 +322,7 @@
    "input_blocked: V2_optimistic"
   ],
   "reviews": [],
-  "status": "SOLVER_UNKNOWN",
+  "status": "AUDIT_BLOCKED",
   "stress_flipped": null,
   "warns": []
  },
@@ -342,7 +342,7 @@
    "input_blocked: V2_optimistic"
   ],
   "reviews": [],
-  "status": "SOLVER_UNKNOWN",
+  "status": "AUDIT_BLOCKED",
   "stress_flipped": null,
   "warns": []
  },
@@ -362,7 +362,7 @@
    "input_blocked: V2_optimistic"
   ],
   "reviews": [],
-  "status": "SOLVER_UNKNOWN",
+  "status": "AUDIT_BLOCKED",
   "stress_flipped": null,
   "warns": []
  },
@@ -485,7 +485,7 @@
    "input_blocked: P0_contract, V1_missing"
   ],
   "reviews": [],
-  "status": "SOLVER_UNKNOWN",
+  "status": "AUDIT_BLOCKED",
   "stress_flipped": null,
   "warns": []
  },
@@ -507,7 +507,7 @@
    "input_blocked: V1_unit"
   ],
   "reviews": [],
-  "status": "SOLVER_UNKNOWN",
+  "status": "AUDIT_BLOCKED",
   "stress_flipped": null,
   "warns": []
  },
@@ -529,7 +529,7 @@
    "input_blocked: V2_unverified"
   ],
   "reviews": [],
-  "status": "SOLVER_UNKNOWN",
+  "status": "AUDIT_BLOCKED",
   "stress_flipped": null,
   "warns": []
  },
@@ -551,7 +551,7 @@
    "input_blocked: V3_palette_mix"
   ],
   "reviews": [],
-  "status": "SOLVER_UNKNOWN",
+  "status": "AUDIT_BLOCKED",
   "stress_flipped": null,
   "warns": []
  },
@@ -573,7 +573,7 @@
    "input_blocked: V6_positive"
   ],
   "reviews": [],
-  "status": "SOLVER_UNKNOWN",
+  "status": "AUDIT_BLOCKED",
   "stress_flipped": null,
   "warns": [
    "V5_interval"
@@ -598,7 +598,7 @@
    "input_blocked: P0_contract, V5_interval"
   ],
   "reviews": [],
-  "status": "SOLVER_UNKNOWN",
+  "status": "AUDIT_BLOCKED",
   "stress_flipped": null,
   "warns": []
  },
@@ -620,7 +620,7 @@
    "input_blocked: V2_optimistic"
   ],
   "reviews": [],
-  "status": "SOLVER_UNKNOWN",
+  "status": "AUDIT_BLOCKED",
   "stress_flipped": null,
   "warns": []
  },
@@ -643,7 +643,7 @@
    "input_blocked: P0_contract, S0_scaling_input"
   ],
   "reviews": [],
-  "status": "SOLVER_UNKNOWN",
+  "status": "AUDIT_BLOCKED",
   "stress_flipped": null,
   "warns": []
  },
@@ -665,7 +665,7 @@
    "input_blocked: P0_contract"
   ],
   "reviews": [],
-  "status": "SOLVER_UNKNOWN",
+  "status": "AUDIT_BLOCKED",
   "stress_flipped": null,
   "warns": []
  },
@@ -687,7 +687,7 @@
    "input_blocked: P1_source_hash"
   ],
   "reviews": [],
-  "status": "SOLVER_UNKNOWN",
+  "status": "AUDIT_BLOCKED",
   "stress_flipped": null,
   "warns": []
  },
@@ -763,7 +763,7 @@
    "input_blocked: P2_temp_basis, V2_unverified"
   ],
   "reviews": [],
-  "status": "SOLVER_UNKNOWN",
+  "status": "AUDIT_BLOCKED",
   "stress_flipped": null,
   "warns": []
  }

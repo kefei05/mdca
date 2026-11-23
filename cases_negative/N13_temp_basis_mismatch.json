@@ -119,7 +119,7 @@
     }
   },
   "_expect": {
-    "status": "SOLVER_UNKNOWN",
+    "status": "AUDIT_BLOCKED",
     "reason_contains": "P2_temp_basis"
   },
   "_expect_a": {
