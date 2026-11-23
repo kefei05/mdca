@@ -23,6 +23,8 @@ Step "grading 17"      "python mdca_grading.py selftest"
 Step "palette 5"       "python mdca_palette.py --selftest"
 Step "mdca A 路 7"     "python mdca.py selftest"
 Step "check A 路 17"   "python mdca.py check 300"
+Step "inverter 12"     "python mdca_inverter.py selftest"
+Step "backtest 5 集"   "python road_a_backtest.py"
 
 Write-Host ""
 Write-Host "########## B 路（显式启用插件）##########" -ForegroundColor Magenta
