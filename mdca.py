@@ -75,6 +75,7 @@ from mdca_provenance import (  # noqa: E402
     sha256_file,
 )
 from mdca_schema import read_jsonl, validate_document  # noqa: E402
+from mdca_inverter import audit_case_consistency  # noqa: E402
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -92,7 +93,9 @@ REQUIRED_A: Dict[str, str] = {
     "Ta": "C",        # 环境温度
 }
 # 可选参数：不要求存在，但一旦出现，单位必须对（V1_unit）
+# 分成四组：热学 / 申报节点温度 / 电磁与功率链 / 槽与几何
 OPTIONAL: Dict[str, str] = {
+    # ---- 热学 ----
     "Rws": "K/W",     # A 路可选：给了就参与反推对照（路线图第 3 步）
     "Rsa": "K/W",
     "Rrs": "K/W",
@@ -101,8 +104,57 @@ OPTIONAL: Dict[str, str] = {
     "Tref": "C",
     "Tw_max": "C",
     "Tr_max": "C",
+    # ---- 申报的节点温度（A 路反推器用；也可放在顶层 reported / _ai_reported）----
+    "Tw": "C",
+    "Ts": "C",
+    "Tr": "C",
+    # ---- 引擎 A：电磁与功率链闭合 ----
+    "p": "1",                 # 极对数
+    "kw": "1",                # 绕组系数
+    "N_series": "turns",      # 每相串联匝数
+    "N_coil": "turns",        # 每线圈匝数
+    "coils_per_phase": "1",   # 每相串联线圈数
+    "N_ref": "turns",         # 改匝数前的基准匝数
+    "Phi_pole": "mWb",        # 每极磁通
+    "lambda_pm": "mWb",       # 永磁磁链
+    "B_delta": "T",           # 气隙磁密
+    "alpha_p": "1",           # 极弧系数
+    "tau_p": "mm",            # 极距
+    "L_stack": "mm",          # 叠长
+    "Kt": "mN.m/A",           # 转矩常数
+    "E_line_pk": "V",         # 线反电势峰值
+    "U_bus": "V",             # 母线电压
+    "n_rpm": "rpm",           # 转速
+    "I_rms": "A",
+    "I_peak": "A",
+    "R_phase": "Ohm",         # 参考温度相电阻
+    "R_ref": "Ohm",           # 改匝数前的基准相电阻
+    "K_f": "1",               # 槽满率
+    "A_cu_net": "mm2",        # 每槽净铜面积
+    "A_cu_enamel": "mm2",     # 每槽含漆铜面积
+    "A_slot": "mm2",          # 槽面积
+    "A_env": "mm2",           # 绕组包络面积
+    "A_case": "m2",           # 机壳外部散热面积
+    "T_out": "N.m",
+    "P_out": "W",
+    "P_loss": "W",
+    "eta": "%",
 }
 INTERVAL_CAPABLE = ("Rws", "Rsa", "Pcu", "Pfe", "Ta", "alpha")
+
+# 单位等价归一化：工程文档里 mm² / mm2、N·m / N.m、℃ / C、Ω / Ohm 混用是常态，
+# 严格字符比较会把合法数据误拦成 BLOCK。只归一化写法，不改物理含义。
+_UNIT_ALIASES = {
+    "²": "2", "³": "3", "·": ".", "⋅": ".", "∙": ".",
+    "Ω": "Ohm", "ω": "Ohm", "℃": "C", "°": "", " ": "",
+}
+
+
+def _norm_unit(u: str) -> str:
+    s = str(u or "").strip()
+    for src, dst in _UNIT_ALIASES.items():
+        s = s.replace(src, dst)
+    return s.lower()
 
 # A 路三状态
 AUDIT_PASS = "AUDIT_PASS"
@@ -169,6 +221,11 @@ class Case:
     plugins: Optional[List[str]] = None   # case 里显式声明的插件；None = 文件里没这个字段
                                           # 不用 [] 作默认：[] 是「显式关闭全部」，
                                           # 与「没声明」必须区分，否则 env/默认两级永远走不到
+    # ---- A 路反推器所需的顶层扩展（都可缺省）----
+    reported: Dict[str, Any] = field(default_factory=dict)          # 对方申报的节点温度
+    meta: Dict[str, Any] = field(default_factory=dict)              # 冷却方式、极对数等辅助口径
+    operating_points: List[Dict[str, Any]] = field(default_factory=list)  # 多工况点
+    topology_spec: Dict[str, Any] = field(default_factory=dict)     # 支路热阻拓扑声明
 
     def get(self, key: str) -> Optional[Param]:
         return self.params.get(key)
@@ -237,6 +294,11 @@ def parse_case_doc(raw: Dict[str, Any], source: str) -> Case:
         source_type=str(raw.get("source_type") or ""),
         benchmark=str(raw.get("benchmark") or ""),
         plugins=decl,
+        # 顶层 reported 与 AI 组存档用的 _ai_reported 是同一个语义：对方申报的温度
+        reported=dict(raw.get("reported") or raw.get("_ai_reported") or {}),
+        meta=dict(raw.get("meta") or {}),
+        operating_points=list(raw.get("operating_points") or []),
+        topology_spec=dict(raw.get("topology_spec") or {}),
     )
 
 
@@ -292,7 +354,7 @@ def validate(case: Case) -> List[Issue]:
         if p is None:
             issues.append(Issue("V1_missing", "BLOCK", f"缺少必需参数 {key}", (key,)))
             continue
-        if p.unit != unit:
+        if _norm_unit(p.unit) != _norm_unit(unit):
             issues.append(Issue(
                 "V1_unit", "BLOCK",
                 f"{key} 单位应为 {unit}，实际 {p.unit or '(空)'}", (key,)))
@@ -301,7 +363,7 @@ def validate(case: Case) -> List[Issue]:
     # code 仍用 V1_unit：语义是「单位不符」，变的是「是否必须存在」，不是严重性。
     for key, unit in OPTIONAL.items():
         p = case.params.get(key)
-        if p is not None and p.unit and p.unit != unit:
+        if p is not None and p.unit and _norm_unit(p.unit) != _norm_unit(unit):
             issues.append(Issue(
                 "V1_unit", "BLOCK",
                 f"{key} 单位应为 {unit}，实际 {p.unit}", (key,)))
@@ -556,6 +618,14 @@ def audit(case: Case, plugins: Any = None) -> Dict[str, Any]:
             "P1_source_hash", "BLOCK",
             "外部来源哈希不符或文件缺失：" + "；".join(f"{s.path}（{s.reason}）" for s in src_bad),
             (), {"sources": [s.__dict__ for s in src_bad]}))
+
+    # ---- A 路反推器与电磁-热自洽性判据集（路线图第 3、4 步）----
+    consistency = audit_case_consistency(case)
+    if "thermal" not in active:
+        # 只在 A 路并入 issues。B 路只把 consistency 挂在 result 上供查阅——
+        # 否则会改变 v0.2 已冻结的 B 路 34 算例结论（cases_ai 的 V2_optimistic 拦截）。
+        issues.extend(_to_issues(consistency.get("issues") or []))
+
     blocked = [i for i in issues if i.severity == "BLOCK"]
     review = [i for i in issues if i.severity == "REVIEW"]
 
@@ -590,6 +660,7 @@ def audit(case: Case, plugins: Any = None) -> Dict[str, Any]:
         },
         "scaling": scaling_result,
         "params_overwritten": overwritten,
+        "consistency": consistency,
         "provenance": {
             "case_hash": case_hash,
             "code_digest": code_digest,
@@ -704,8 +775,8 @@ def audit(case: Case, plugins: Any = None) -> Dict[str, Any]:
     result["audit"] = {
         "overall_status": v["status"],
         "reasons": v["reasons"],
-        "note": ("AUDIT_PASS 表示口径/契约/溯源过审，不表示数据可信，"
-                 "也不表示任何电机的合格性；自洽性判断待反推器（路线图第 3 步）。"),
+        "note": ("AUDIT_PASS 表示口径/契约/溯源及已提供的电磁-热自洽性判据过审，"
+                 "不表示数据可信，也不表示任何电机的真实合格性。"),
     }
     return result
 
@@ -733,6 +804,9 @@ def print_report(o: Dict[str, Any]) -> None:
             for d in ow))
     print(f"  校验：{'BLOCKED' if v.get('blocked') else 'OK'}"
           f"（block {v.get('block_count', 0)} / review {v.get('review_count', 0)}）")
+    cons = o.get("consistency") or {}
+    if cons.get("ran"):
+        print(f"  自洽性判据：{', '.join(cons.get('checks_run') or [])}")
     for i in v.get("issues", []):
         if i["severity"] in ("BLOCK", "REVIEW"):
             print(f"    [{i['severity']}] {i['code']}: {i['message']}")
