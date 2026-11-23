@@ -172,5 +172,8 @@
   "_expect": {
     "status": "MODEL_REVIEW",
     "reason_contains": "S2_extrapolation"
+  },
+  "_expect_a": {
+    "status": "AUDIT_PASS"
   }
 }

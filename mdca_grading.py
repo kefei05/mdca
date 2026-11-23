@@ -228,6 +228,18 @@ def selftest() -> bool:
     check("BOX_PASS 裕度 30K → 送外部",
           _mk("BOX_PASS", margin=30, cal=True), "external")
 
+    # grading-1.3：A 路三状态（无温度结论）
+    check("AUDIT_PASS → 继续优化（不送外部）",
+          _mk("AUDIT_PASS"), "refine")
+    check("AUDIT_PASS 但无校准 → 人工复核",
+          _mk("AUDIT_PASS", cal=False), "manual")
+    check("AUDIT_REVIEW → 人工复核",
+          _mk("AUDIT_REVIEW"), "manual")
+    check("AUDIT_BLOCKED + 硬违规 → 淘汰",
+          _mk("AUDIT_BLOCKED", blocked=True, codes=("V3_palette_mix",)), "eliminate")
+    check("AUDIT_BLOCKED + 数据问题 → 人工复核",
+          _mk("AUDIT_BLOCKED", blocked=True, codes=("V2_unverified",)), "manual")
+
     print(f"自测结果：{'全部通过' if ok else '有失败项'}")
     return ok
 

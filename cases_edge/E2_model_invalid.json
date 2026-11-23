@@ -145,5 +145,8 @@
   "_expect": {
     "status": "MODEL_REVIEW",
     "reason_contains": "linear_model_out_of_validity"
+  },
+  "_expect_a": {
+    "status": "AUDIT_PASS"
   }
 }

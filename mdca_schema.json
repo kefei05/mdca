@@ -35,9 +35,9 @@
     },
 
     "params": {
-      "description": "设计参数与运行参数。键为参数名，值为 Param 对象",
+      "description": "设计参数与运行参数。键为参数名，值为 Param 对象。必需集是 A 路的最小集（Pcu/Pfe/Ta）；Rws/Rsa 只在启用 thermal 插件时才必需，由插件在运行时检查。",
       "type": "object",
-      "required": ["Rws", "Rsa", "Pcu", "Pfe", "Ta"],
+      "required": ["Pcu", "Pfe", "Ta"],
       "properties": {
         "Rws": { "$ref": "#/definitions/param" },
         "Rsa": { "$ref": "#/definitions/param" },

@@ -1,6 +1,6 @@
 {
   "schema": "1.0",
-  "version": "grading-1.2",
+  "version": "grading-1.4",
   "created": "2026-11-21",
   "note": "四档分级规则。改动必须升 version 并在 changelog 追加理由（纠偏基线第 9 节）。",
   "changelog": [
@@ -21,6 +21,18 @@
       "date": "2026-11-21",
       "change": "为三个阈值补上依据链（thresholds.basis），并标注它们的证据等级。阈值数值本身不变。",
       "reason": "阶段 C 的 C3 要求「阈值必须有明确数值和依据」。原 v1.1 的 10 / 25 / 5 是工程约定，没有出处。现按阶段 E 实测的模型残差反推：结构残差 4.34 K（跨工况 Ts）+ 边界响应 3.36 K（ΔTa=+20K 时的偏差）= 7.70 K 作为下限，往上取整得 10 K。仍是工程约定，但依据可追溯。"
+    },
+    {
+      "version": "grading-1.3",
+      "date": "2026-11-22",
+      "change": "新增 A1_audit_pass / A2_audit_review 两条规则，处理 A 路（默认、不带温度）的 AUDIT_PASS / AUDIT_REVIEW 状态。AUDIT_BLOCKED 不新增规则——它由 E3_hard_violation / M2_data_issue 经 block_kind 覆盖。原有 12 条规则与三个阈值一字未动。",
+      "reason": "路线图第 2 步把温度计算降为插件并默认关闭后，A 路的结论词汇从 POINT_PASS/MODEL_FAIL 换成了 AUDIT_PASS/AUDIT_REVIEW/AUDIT_BLOCKED。若不补规则，AUDIT_PASS 会落到 fallback「人工复核」，把「口径全干净」的数据误压成「要人看」，与 A 路的定位不符。A1 只给 refine（继续用），**不给 external 送外部**：A 路不产生温度结论，没有资格推荐送 Motor-CAD/Motor-CAD。这不是放宽，是给一个没有温度的世界补上正确的档位。"
+    },
+    {
+      "version": "grading-1.4",
+      "date": "2026-11-23",
+      "change": "把 mdca_inverter.py 新增的 20 个电磁-热自洽性 BLOCK 码加入 block_kinds.hard_violation（C1_flux_mismatch / C1_kt_basis_mismatch / C1_kt_mismatch / C1_emf_mismatch / C1_bus_voltage_exceeded / C2_copper_loss_mismatch / C2_turn_scaling_linear_bug / C2_slot_fill_unmatched / C3_mech_power_mismatch / C3_efficiency_mismatch / I1_feedback_unstable / I1_kcl_violation / I2_non_positive_temp_rise / I2_negative_implied_R / I2_negative_implied_Rrs / I2_negative_implied_Rws / I3_missed_violation_detected / I4_non_positive_branch / I4_topology_reduction_mismatch）。原有 7 个 hard_violation、3 个 data_issue、17 条规则、三个阈值一字未动。",
+      "reason": "第 3 步的反推器能算出一类此前测不到的错误：**对方的数与物理守恒方程不自洽**。例如 AI 组 10 个方案同时是「数据无来源（V2_optimistic，data_issue）」和「漏乘 Rsa·Pcu 违反节点 KCL（I1_kcl_violation）」，原来只能归「人工复核」，归因是「不知道数据真不真」。现在知道它们在物理上不可能成立，那是硬伤不是待确认项，必须归「淘汰」。这不是加严判定，而是把「不可能」与「不知道」分开——前者淘汰，后者交人。注：B 路不进 consistency issues，故 v0.2 冻结的 34 算例分级完全不变。"
     }
   ],
 
@@ -37,16 +49,42 @@
     "hard_violation": [
       "P0_contract",
       "P1_source_hash",
+      "P2_temp_basis",
       "V1_missing",
       "V1_unit",
       "V3_palette_mix",
       "V5_interval",
-      "V6_positive"
+      "V6_positive",
+
+      "C1_flux_mismatch",
+      "C1_kt_basis_mismatch",
+      "C1_kt_mismatch",
+      "C1_emf_mismatch",
+      "C1_bus_voltage_exceeded",
+      "C2_copper_loss_mismatch",
+      "C2_turn_scaling_linear_bug",
+      "C2_slot_fill_unmatched",
+      "C3_mech_power_mismatch",
+      "C3_efficiency_mismatch",
+
+      "I1_feedback_unstable",
+      "I1_kcl_violation",
+      "I2_non_positive_temp_rise",
+      "I2_negative_implied_R",
+      "I2_negative_implied_Rrs",
+      "I2_negative_implied_Rws",
+      "I3_missed_violation_detected",
+      "I4_non_positive_branch",
+      "I4_topology_reduction_mismatch"
     ],
     "data_issue": [
       "V2_unverified",
       "V2_optimistic",
-      "S0_scaling_input"
+      "S0_scaling_input",
+      "V1_plugin_missing",
+      "B0_plugin_failed",
+      "B0_plugin_name",
+      "B0_plugin_bad_param"
     ]
   },
 
@@ -140,6 +178,12 @@
       "reason": "压力测试导致结论翻转"
     },
     {
+      "id": "A2_audit_review",
+      "tier": "manual",
+      "when": { "overall_status": ["AUDIT_REVIEW"] },
+      "reason": "A 路：有需人工确认项（超域 / 外推 / 未验证但声明保守 / 基准豁免）"
+    },
+    {
       "id": "R1_small_margin",
       "tier": "refine",
       "when": { "margin_below": "margin_small_K" },
@@ -150,6 +194,12 @@
       "tier": "refine",
       "when": { "distance_to_limit_below": "near_limit_band_K" },
       "reason": "贴近约束边界，对扰动敏感"
+    },
+    {
+      "id": "A1_audit_pass",
+      "tier": "refine",
+      "when": { "overall_status": ["AUDIT_PASS"] },
+      "reason": "A 路：口径/契约/溯源过审，但本轮未产生温度结论——可继续用，不送外部"
     },
     {
       "id": "X1_eligible",

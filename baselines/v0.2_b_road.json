@@ -1,0 +1,770 @@
+{
+ "benchmarks/BM1_joint_300W_conduction.json": {
+  "Tr": 168.838,
+  "Ts": 123.118,
+  "Tw": 146.752,
+  "Twc": 179.752,
+  "blocks": [],
+  "coupling": "CONVERGED",
+  "infos": [
+   "V2_conservative"
+  ],
+  "interval": [
+   129.286,
+   229.092
+  ],
+  "model_nodes": 3,
+  "reasons": [
+   "rotor_over_magnet_limit",
+   "temperature_exceeds_limit",
+   "winding_over_insulation_limit"
+  ],
+  "reviews": [],
+  "status": "MODEL_FAIL",
+  "stress_flipped": false,
+  "warns": []
+ },
+ "benchmarks/BM2_energies_4kW_tefc.json": {
+  "Tr": null,
+  "Ts": null,
+  "Tw": 118.788,
+  "Twc": 118.788,
+  "blocks": [],
+  "coupling": "CONVERGED",
+  "infos": [],
+  "interval": null,
+  "model_nodes": 2,
+  "reasons": [
+   "V2_benchmark_exempt",
+   "calibration_missing"
+  ],
+  "reviews": [
+   "V2_benchmark_exempt"
+  ],
+  "status": "MODEL_REVIEW",
+  "stress_flipped": false,
+  "warns": []
+ },
+ "benchmarks/BM3_mcad_ev5_waterjacket.json": {
+  "Tr": 159.549,
+  "Ts": 92.338,
+  "Tw": 155.496,
+  "Twc": 160.496,
+  "blocks": [],
+  "coupling": "CONVERGED",
+  "infos": [],
+  "interval": null,
+  "model_nodes": 3,
+  "reasons": [
+   "V2_benchmark_exempt",
+   "decision_flipped_under_stress"
+  ],
+  "reviews": [
+   "V2_benchmark_exempt"
+  ],
+  "status": "MODEL_REVIEW",
+  "stress_flipped": true,
+  "warns": []
+ },
+ "cases/joint_A_body_conduction.json": {
+  "Tr": 168.838,
+  "Ts": 123.118,
+  "Tw": 146.752,
+  "Twc": 179.752,
+  "blocks": [],
+  "coupling": "CONVERGED",
+  "infos": [
+   "V2_conservative"
+  ],
+  "interval": [
+   129.286,
+   229.092
+  ],
+  "model_nodes": 3,
+  "reasons": [
+   "rotor_over_magnet_limit",
+   "temperature_exceeds_limit",
+   "winding_over_insulation_limit"
+  ],
+  "reviews": [],
+  "status": "MODEL_FAIL",
+  "stress_flipped": false,
+  "warns": []
+ },
+ "cases/joint_B_natural_convection.json": {
+  "Tr": 410.014,
+  "Ts": 364.294,
+  "Tw": 403.87,
+  "Twc": 436.87,
+  "blocks": [],
+  "coupling": "CONVERGED",
+  "infos": [
+   "V2_conservative"
+  ],
+  "interval": [
+   284.971,
+   595.325
+  ],
+  "model_nodes": 3,
+  "reasons": [
+   "linear_model_out_of_validity",
+   "temperature_exceeds_limit"
+  ],
+  "reviews": [],
+  "status": "MODEL_REVIEW",
+  "stress_flipped": false,
+  "warns": []
+ },
+ "cases/joint_C_stretched_45mm.json": {
+  "Tr": 122.986,
+  "Ts": 92.506,
+  "Tw": 106.603,
+  "Twc": 139.603,
+  "blocks": [],
+  "coupling": "CONVERGED",
+  "infos": [
+   "S1_scaling_applied",
+   "S3_params_overwritten",
+   "V2_conservative"
+  ],
+  "interval": [
+   103.528,
+   168.051
+  ],
+  "model_nodes": 3,
+  "reasons": [
+   "S2_extrapolation",
+   "decision_flipped_under_stress",
+   "temperature_bound_crosses_limit"
+  ],
+  "reviews": [
+   "S2_extrapolation"
+  ],
+  "status": "MODEL_REVIEW",
+  "stress_flipped": true,
+  "warns": []
+ },
+ "cases/joint_X_blocked_2d_copper_loss.json": {
+  "Tr": null,
+  "Ts": null,
+  "Tw": null,
+  "Twc": null,
+  "blocks": [
+   "V3_palette_mix"
+  ],
+  "coupling": "NOT_RUN",
+  "infos": [
+   "V2_conservative"
+  ],
+  "interval": null,
+  "model_nodes": null,
+  "reasons": [
+   "input_blocked: V3_palette_mix"
+  ],
+  "reviews": [],
+  "status": "AUDIT_BLOCKED",
+  "stress_flipped": null,
+  "warns": []
+ },
+ "cases_ai/AI01.json": {
+  "Tr": null,
+  "Ts": null,
+  "Tw": null,
+  "Twc": null,
+  "blocks": [
+   "V2_optimistic"
+  ],
+  "coupling": "NOT_RUN",
+  "infos": [],
+  "interval": null,
+  "model_nodes": null,
+  "reasons": [
+   "input_blocked: V2_optimistic"
+  ],
+  "reviews": [],
+  "status": "AUDIT_BLOCKED",
+  "stress_flipped": null,
+  "warns": []
+ },
+ "cases_ai/AI02.json": {
+  "Tr": null,
+  "Ts": null,
+  "Tw": null,
+  "Twc": null,
+  "blocks": [
+   "V2_optimistic"
+  ],
+  "coupling": "NOT_RUN",
+  "infos": [],
+  "interval": null,
+  "model_nodes": null,
+  "reasons": [
+   "input_blocked: V2_optimistic"
+  ],
+  "reviews": [],
+  "status": "AUDIT_BLOCKED",
+  "stress_flipped": null,
+  "warns": []
+ },
+ "cases_ai/AI03.json": {
+  "Tr": null,
+  "Ts": null,
+  "Tw": null,
+  "Twc": null,
+  "blocks": [
+   "V2_optimistic"
+  ],
+  "coupling": "NOT_RUN",
+  "infos": [],
+  "interval": null,
+  "model_nodes": null,
+  "reasons": [
+   "input_blocked: V2_optimistic"
+  ],
+  "reviews": [],
+  "status": "AUDIT_BLOCKED",
+  "stress_flipped": null,
+  "warns": []
+ },
+ "cases_ai/AI04.json": {
+  "Tr": null,
+  "Ts": null,
+  "Tw": null,
+  "Twc": null,
+  "blocks": [
+   "V2_optimistic"
+  ],
+  "coupling": "NOT_RUN",
+  "infos": [],
+  "interval": null,
+  "model_nodes": null,
+  "reasons": [
+   "input_blocked: V2_optimistic"
+  ],
+  "reviews": [],
+  "status": "AUDIT_BLOCKED",
+  "stress_flipped": null,
+  "warns": []
+ },
+ "cases_ai/AI05.json": {
+  "Tr": null,
+  "Ts": null,
+  "Tw": null,
+  "Twc": null,
+  "blocks": [
+   "V2_optimistic"
+  ],
+  "coupling": "NOT_RUN",
+  "infos": [],
+  "interval": null,
+  "model_nodes": null,
+  "reasons": [
+   "input_blocked: V2_optimistic"
+  ],
+  "reviews": [],
+  "status": "AUDIT_BLOCKED",
+  "stress_flipped": null,
+  "warns": []
+ },
+ "cases_ai/AI06.json": {
+  "Tr": null,
+  "Ts": null,
+  "Tw": null,
+  "Twc": null,
+  "blocks": [
+   "V2_optimistic"
+  ],
+  "coupling": "NOT_RUN",
+  "infos": [],
+  "interval": null,
+  "model_nodes": null,
+  "reasons": [
+   "input_blocked: V2_optimistic"
+  ],
+  "reviews": [],
+  "status": "AUDIT_BLOCKED",
+  "stress_flipped": null,
+  "warns": []
+ },
+ "cases_ai/AI07.json": {
+  "Tr": null,
+  "Ts": null,
+  "Tw": null,
+  "Twc": null,
+  "blocks": [
+   "V2_optimistic"
+  ],
+  "coupling": "NOT_RUN",
+  "infos": [],
+  "interval": null,
+  "model_nodes": null,
+  "reasons": [
+   "input_blocked: V2_optimistic"
+  ],
+  "reviews": [],
+  "status": "AUDIT_BLOCKED",
+  "stress_flipped": null,
+  "warns": []
+ },
+ "cases_ai/AI08.json": {
+  "Tr": null,
+  "Ts": null,
+  "Tw": null,
+  "Twc": null,
+  "blocks": [
+   "V2_optimistic"
+  ],
+  "coupling": "NOT_RUN",
+  "infos": [],
+  "interval": null,
+  "model_nodes": null,
+  "reasons": [
+   "input_blocked: V2_optimistic"
+  ],
+  "reviews": [],
+  "status": "AUDIT_BLOCKED",
+  "stress_flipped": null,
+  "warns": []
+ },
+ "cases_ai/AI09.json": {
+  "Tr": null,
+  "Ts": null,
+  "Tw": null,
+  "Twc": null,
+  "blocks": [
+   "V2_optimistic"
+  ],
+  "coupling": "NOT_RUN",
+  "infos": [],
+  "interval": null,
+  "model_nodes": null,
+  "reasons": [
+   "input_blocked: V2_optimistic"
+  ],
+  "reviews": [],
+  "status": "AUDIT_BLOCKED",
+  "stress_flipped": null,
+  "warns": []
+ },
+ "cases_ai/AI10.json": {
+  "Tr": null,
+  "Ts": null,
+  "Tw": null,
+  "Twc": null,
+  "blocks": [
+   "V2_optimistic"
+  ],
+  "coupling": "NOT_RUN",
+  "infos": [],
+  "interval": null,
+  "model_nodes": null,
+  "reasons": [
+   "input_blocked: V2_optimistic"
+  ],
+  "reviews": [],
+  "status": "AUDIT_BLOCKED",
+  "stress_flipped": null,
+  "warns": []
+ },
+ "cases_edge/E1_over_temperature.json": {
+  "Tr": 189.961,
+  "Ts": 144.241,
+  "Tw": 179.946,
+  "Twc": 212.946,
+  "blocks": [],
+  "coupling": "CONVERGED",
+  "infos": [
+   "V2_conservative"
+  ],
+  "interval": [
+   129.286,
+   229.092
+  ],
+  "model_nodes": 3,
+  "reasons": [
+   "rotor_over_magnet_limit",
+   "temperature_exceeds_limit",
+   "winding_over_insulation_limit"
+  ],
+  "reviews": [],
+  "status": "MODEL_FAIL",
+  "stress_flipped": false,
+  "warns": [
+   "V5_interval"
+  ]
+ },
+ "cases_edge/E2_model_invalid.json": {
+  "Tr": 241.186,
+  "Ts": 195.466,
+  "Tw": 260.443,
+  "Twc": 293.443,
+  "blocks": [],
+  "coupling": "CONVERGED",
+  "infos": [
+   "V2_conservative"
+  ],
+  "interval": [
+   129.286,
+   229.092
+  ],
+  "model_nodes": 3,
+  "reasons": [
+   "linear_model_out_of_validity",
+   "temperature_exceeds_limit"
+  ],
+  "reviews": [],
+  "status": "MODEL_REVIEW",
+  "stress_flipped": false,
+  "warns": [
+   "V5_interval"
+  ]
+ },
+ "cases_edge/E3_interval_crosses.json": {
+  "Tr": null,
+  "Ts": null,
+  "Tw": 109.456,
+  "Twc": 109.456,
+  "blocks": [],
+  "coupling": "CONVERGED",
+  "infos": [
+   "V2_conservative"
+  ],
+  "interval": [
+   82.059,
+   199.167
+  ],
+  "model_nodes": 2,
+  "reasons": [
+   "temperature_bound_crosses_limit"
+  ],
+  "reviews": [],
+  "status": "MODEL_REVIEW",
+  "stress_flipped": false,
+  "warns": []
+ },
+ "cases_edge/E4_feedback_divergence.json": {
+  "Tr": null,
+  "Ts": null,
+  "Tw": null,
+  "Twc": null,
+  "blocks": [],
+  "coupling": "COUPLING_FAILED",
+  "infos": [
+   "V2_conservative"
+  ],
+  "interval": null,
+  "model_nodes": 3,
+  "reasons": [
+   "thermal_feedback_divergence"
+  ],
+  "reviews": [
+   "D1_out_of_domain"
+  ],
+  "status": "COUPLING_FAILED",
+  "stress_flipped": null,
+  "warns": [
+   "V5_interval"
+  ]
+ },
+ "cases_negative/N01_missing_param.json": {
+  "Tr": null,
+  "Ts": null,
+  "Tw": null,
+  "Twc": null,
+  "blocks": [
+   "P0_contract",
+   "V1_missing"
+  ],
+  "coupling": "NOT_RUN",
+  "infos": [
+   "V2_conservative"
+  ],
+  "interval": null,
+  "model_nodes": null,
+  "reasons": [
+   "input_blocked: P0_contract, V1_missing"
+  ],
+  "reviews": [],
+  "status": "AUDIT_BLOCKED",
+  "stress_flipped": null,
+  "warns": []
+ },
+ "cases_negative/N02_bad_unit.json": {
+  "Tr": null,
+  "Ts": null,
+  "Tw": null,
+  "Twc": null,
+  "blocks": [
+   "V1_unit"
+  ],
+  "coupling": "NOT_RUN",
+  "infos": [
+   "V2_conservative"
+  ],
+  "interval": null,
+  "model_nodes": null,
+  "reasons": [
+   "input_blocked: V1_unit"
+  ],
+  "reviews": [],
+  "status": "AUDIT_BLOCKED",
+  "stress_flipped": null,
+  "warns": []
+ },
+ "cases_negative/N03_unverified_no_decl.json": {
+  "Tr": null,
+  "Ts": null,
+  "Tw": null,
+  "Twc": null,
+  "blocks": [
+   "V2_unverified"
+  ],
+  "coupling": "NOT_RUN",
+  "infos": [
+   "V2_conservative"
+  ],
+  "interval": null,
+  "model_nodes": null,
+  "reasons": [
+   "input_blocked: V2_unverified"
+  ],
+  "reviews": [],
+  "status": "AUDIT_BLOCKED",
+  "stress_flipped": null,
+  "warns": []
+ },
+ "cases_negative/N04_palette_mix.json": {
+  "Tr": null,
+  "Ts": null,
+  "Tw": null,
+  "Twc": null,
+  "blocks": [
+   "V3_palette_mix"
+  ],
+  "coupling": "NOT_RUN",
+  "infos": [
+   "V2_conservative"
+  ],
+  "interval": null,
+  "model_nodes": null,
+  "reasons": [
+   "input_blocked: V3_palette_mix"
+  ],
+  "reviews": [],
+  "status": "AUDIT_BLOCKED",
+  "stress_flipped": null,
+  "warns": []
+ },
+ "cases_negative/N05_negative_R.json": {
+  "Tr": null,
+  "Ts": null,
+  "Tw": null,
+  "Twc": null,
+  "blocks": [
+   "V6_positive"
+  ],
+  "coupling": "NOT_RUN",
+  "infos": [
+   "V2_conservative"
+  ],
+  "interval": null,
+  "model_nodes": null,
+  "reasons": [
+   "input_blocked: V6_positive"
+  ],
+  "reviews": [],
+  "status": "AUDIT_BLOCKED",
+  "stress_flipped": null,
+  "warns": [
+   "V5_interval"
+  ]
+ },
+ "cases_negative/N06_interval_inverted.json": {
+  "Tr": null,
+  "Ts": null,
+  "Tw": null,
+  "Twc": null,
+  "blocks": [
+   "P0_contract",
+   "V5_interval"
+  ],
+  "coupling": "NOT_RUN",
+  "infos": [
+   "V2_conservative"
+  ],
+  "interval": null,
+  "model_nodes": null,
+  "reasons": [
+   "input_blocked: P0_contract, V5_interval"
+  ],
+  "reviews": [],
+  "status": "AUDIT_BLOCKED",
+  "stress_flipped": null,
+  "warns": []
+ },
+ "cases_negative/N07_optimistic.json": {
+  "Tr": null,
+  "Ts": null,
+  "Tw": null,
+  "Twc": null,
+  "blocks": [
+   "V2_optimistic"
+  ],
+  "coupling": "NOT_RUN",
+  "infos": [
+   "V2_conservative"
+  ],
+  "interval": null,
+  "model_nodes": null,
+  "reasons": [
+   "input_blocked: V2_optimistic"
+  ],
+  "reviews": [],
+  "status": "AUDIT_BLOCKED",
+  "stress_flipped": null,
+  "warns": []
+ },
+ "cases_negative/N08_scaling_incomplete.json": {
+  "Tr": null,
+  "Ts": null,
+  "Tw": null,
+  "Twc": null,
+  "blocks": [
+   "P0_contract",
+   "S0_scaling_input"
+  ],
+  "coupling": "NOT_RUN",
+  "infos": [
+   "V2_conservative"
+  ],
+  "interval": null,
+  "model_nodes": null,
+  "reasons": [
+   "input_blocked: P0_contract, S0_scaling_input"
+  ],
+  "reviews": [],
+  "status": "AUDIT_BLOCKED",
+  "stress_flipped": null,
+  "warns": []
+ },
+ "cases_negative/N09_contract_violation.json": {
+  "Tr": null,
+  "Ts": null,
+  "Tw": null,
+  "Twc": null,
+  "blocks": [
+   "P0_contract"
+  ],
+  "coupling": "NOT_RUN",
+  "infos": [
+   "V2_conservative"
+  ],
+  "interval": null,
+  "model_nodes": null,
+  "reasons": [
+   "input_blocked: P0_contract"
+  ],
+  "reviews": [],
+  "status": "AUDIT_BLOCKED",
+  "stress_flipped": null,
+  "warns": []
+ },
+ "cases_negative/N10_source_hash_mismatch.json": {
+  "Tr": null,
+  "Ts": null,
+  "Tw": null,
+  "Twc": null,
+  "blocks": [
+   "P1_source_hash"
+  ],
+  "coupling": "NOT_RUN",
+  "infos": [
+   "V2_conservative"
+  ],
+  "interval": null,
+  "model_nodes": null,
+  "reasons": [
+   "input_blocked: P1_source_hash"
+  ],
+  "reviews": [],
+  "status": "AUDIT_BLOCKED",
+  "stress_flipped": null,
+  "warns": []
+ },
+ "cases_negative/N11_out_of_domain.json": {
+  "Tr": null,
+  "Ts": null,
+  "Tw": 88.217,
+  "Twc": 121.217,
+  "blocks": [],
+  "coupling": "CONVERGED",
+  "infos": [
+   "V2_conservative"
+  ],
+  "interval": [
+   103.062,
+   178.315
+  ],
+  "model_nodes": 2,
+  "reasons": [
+   "D1_out_of_domain",
+   "temperature_bound_crosses_limit"
+  ],
+  "reviews": [
+   "D1_out_of_domain"
+  ],
+  "status": "MODEL_REVIEW",
+  "stress_flipped": false,
+  "warns": [
+   "V5_interval"
+  ]
+ },
+ "cases_negative/N12_extrapolation.json": {
+  "Tr": 101.253,
+  "Ts": 78.393,
+  "Tw": 88.402,
+  "Twc": 121.402,
+  "blocks": [],
+  "coupling": "CONVERGED",
+  "infos": [
+   "S1_scaling_applied",
+   "S3_params_overwritten",
+   "V2_conservative"
+  ],
+  "interval": [
+   91.367,
+   142.805
+  ],
+  "model_nodes": 3,
+  "reasons": [
+   "S2_extrapolation"
+  ],
+  "reviews": [
+   "S2_extrapolation"
+  ],
+  "status": "MODEL_REVIEW",
+  "stress_flipped": false,
+  "warns": []
+ },
+ "cases_negative/N13_temp_basis_mismatch.json": {
+  "Tr": null,
+  "Ts": null,
+  "Tw": null,
+  "Twc": null,
+  "blocks": [
+   "P2_temp_basis",
+   "V2_unverified"
+  ],
+  "coupling": "NOT_RUN",
+  "infos": [],
+  "interval": null,
+  "model_nodes": null,
+  "reasons": [
+   "input_blocked: P2_temp_basis, V2_unverified"
+  ],
+  "reviews": [],
+  "status": "AUDIT_BLOCKED",
+  "stress_flipped": null,
+  "warns": []
+ }
+}

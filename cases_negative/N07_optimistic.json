@@ -144,7 +144,11 @@
     ]
   },
   "_expect": {
-    "status": "SOLVER_UNKNOWN",
+    "status": "AUDIT_BLOCKED",
+    "reason_contains": "V2_optimistic"
+  },
+  "_expect_a": {
+    "status": "AUDIT_BLOCKED",
     "reason_contains": "V2_optimistic"
   }
 }

@@ -1,31 +1,45 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-MDCA 统一入口：口径审计 → 硬拦截 → 适用域 → 两热阻 → 判定
-=============================================================
+MDCA 统一入口：A 路审计（默认）+ B 路插件（可选）
+=================================================
 
-设计原则（对应方案条文）：
+定位（`项目复盘与路线转向.md`）：
 
-  · 方案 5     Python 算温度，区间算术给包络，审计器汇总
-  · 方案 6     六种状态；PASS 只是模型层结论
-  · 方案 6.1   未校准时总体结论必须降级为 MODEL_REVIEW
-  · 方案 7.2   验证状态非"已验证"的数据，**代码层面禁止**进入计算与校准依据
-  · 方案 11.7  单调顶点求值 + 前提检查
-  · 方案 11.10 候选超出校准适用域 ⇒ MODEL_REVIEW，不得因算出数值就输出 BOX_PASS
+    A 路（主线）  不产生数据，只判断别人给的数据能不能用
+    B 路（插件）  自己算温度，需要独立热阻与实测，**默认关闭**
 
-与两个独立脚本的关系：
+本文件只做编排，不写物理：
 
-    mdca_palette.py   口径层（字段定义、冲突规则、Markdown 扫描）
-    mdca_thermal.py   物理层（两热阻、耦合迭代、区间、压力测试）
-    mdca.py           编排层（校验 → 拦截 → 计算 → 判定 → 报告）  ← 本文件
+    mdca_palette.py          口径层（字段定义、冲突规则、Markdown 扫描）
+    mdca_schema.py           契约层（结构校验）
+    mdca_provenance.py       溯源层（sha256、代码指纹、append-only 账本）
+    mdca_grading.py          分级层（六状态 → 四档）
+    mdca_plugins.py          插件注册表与开关（无业务逻辑）
+    mdca_plugin_thermal.py   B 路：两热阻 / 三节点 / 区间 / 压力测试
+    mdca_plugin_scaling.py   B 路：几何缩放律 → Rws/Rsa/Rrs
+    mdca.py                  编排（校验 → 拦截 → 计算 → 判定 → 报告）  ← 本文件
+
+A 路的结论词汇（与温度无关）：
+
+    AUDIT_PASS     口径、契约、溯源全部过审
+    AUDIT_REVIEW   有需人工确认项（超域 / 外推 / 未验证但声明保守 / 基准数据）
+    AUDIT_BLOCKED  有硬拦截（契约 / 单位 / 口径冲突 / 哈希 / 负值 / 区间）
+
+**AUDIT_PASS 只表示「这批数据没有明显口径毛病」，不表示「数据可信」，
+更不表示「这台电机合格」。** 自洽性判断要等反推器（路线图第 3 步）。
 
 用法：
 
-    python mdca.py audit cases/joint_A.json       # 审计一个算例
-    python mdca.py audit cases/                   # 审计目录下全部 .json
-    python mdca.py validate cases/joint_A.json    # 只做校验，不计算
-    python mdca.py palette <md文件或目录>          # 口径审计（转发到 palette）
-    python mdca.py selftest                       # 冒烟测试
+    python mdca.py audit cases/                          # A 路（默认，不算温度）
+    python mdca.py audit cases/ --plugins thermal,scaling  # B 路：叠加温度计算
+    python mdca.py validate cases/joint_A_body_conduction.json
+    python mdca.py palette <md文件或目录>                  # 口径审计（转发）
+    python mdca.py plugins                               # 列插件与开关状态
+    python mdca.py selftest                              # A 路冒烟
+    python mdca.py selftest --plugins thermal            # A 路 + B 路冒烟
+    python mdca.py check 300                             # A 路边界算例
+    python mdca.py check 300 --plugins thermal,scaling   # A + B 路全量自检
 """
 
 from __future__ import annotations
@@ -34,26 +48,20 @@ import json
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from mdca_palette import MIX_BLOCKING, PALETTE_FIELDS, Palette  # noqa: E402
-
-from mdca_thermal import (  # noqa: E402
-    BoxCas,
-    Cas,
-    Cas3,
-    judge_box,
-    judge_point,
-    judge_three,
-    solve_box,
-    solve_point,
-    solve_three,
-    stress_test,
+from mdca_plugins import (  # noqa: E402
+    DEFAULT_PLUGINS,
+    PluginError,
+    all_names as plugin_names,
+    describe as describe_plugins,
+    from_case as plugins_from_case,
+    resolve as resolve_plugins,
+    run as run_plugin,
 )
-from mdca_scaling import Geometry, scale  # noqa: E402
-from mdca_schema import read_jsonl, validate_document  # noqa: E402
 from mdca_provenance import (  # noqa: E402
     CONSTRAINT_VERSION,
     LEDGER_NAME,
@@ -66,6 +74,8 @@ from mdca_provenance import (  # noqa: E402
     sha256_bytes,
     sha256_file,
 )
+from mdca_schema import read_jsonl, validate_document  # noqa: E402
+from mdca_inverter import audit_case_consistency  # noqa: E402
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -76,29 +86,85 @@ except Exception:
 SCHEMA_VERSION = "1.0"
 OUT_DIR = Path(__file__).resolve().parent / "out"
 
-# 必需参数与单位（方案 7.1：数值 + 单位 + 来源 + 验证状态）
-REQUIRED: Dict[str, str] = {
-    "Rws": "K/W",     # 绕组 → 铁芯
-    "Rsa": "K/W",     # 铁芯 → 环境
+# A 路必需参数（审计只要求「有损耗、有环境」，不要求热阻）
+REQUIRED_A: Dict[str, str] = {
     "Pcu": "W",       # 参考温度下铜损
     "Pfe": "W",       # 注入铁芯的其它损耗
     "Ta": "C",        # 环境温度
 }
+# 可选参数：不要求存在，但一旦出现，单位必须对（V1_unit）
+# 分成四组：热学 / 申报节点温度 / 电磁与功率链 / 槽与几何
 OPTIONAL: Dict[str, str] = {
+    # ---- 热学 ----
+    "Rws": "K/W",     # A 路可选：给了就参与反推对照（路线图第 3 步）
+    "Rsa": "K/W",
+    "Rrs": "K/W",
+    "Peddy": "W",
     "alpha": "1/K",
     "Tref": "C",
     "Tw_max": "C",
-    # 三节点扩展：给了 Peddy>0 就自动走三节点
-    "Peddy": "W",
-    "Rrs": "K/W",
     "Tr_max": "C",
+    # ---- 申报的节点温度（A 路反推器用；也可放在顶层 reported / _ai_reported）----
+    "Tw": "C",
+    "Ts": "C",
+    "Tr": "C",
+    # ---- 引擎 A：电磁与功率链闭合 ----
+    "p": "1",                 # 极对数
+    "kw": "1",                # 绕组系数
+    "N_series": "turns",      # 每相串联匝数
+    "N_coil": "turns",        # 每线圈匝数
+    "coils_per_phase": "1",   # 每相串联线圈数
+    "N_ref": "turns",         # 改匝数前的基准匝数
+    "Phi_pole": "mWb",        # 每极磁通
+    "lambda_pm": "mWb",       # 永磁磁链
+    "B_delta": "T",           # 气隙磁密
+    "alpha_p": "1",           # 极弧系数
+    "tau_p": "mm",            # 极距
+    "L_stack": "mm",          # 叠长
+    "Kt": "mN.m/A",           # 转矩常数
+    "E_line_pk": "V",         # 线反电势峰值
+    "U_bus": "V",             # 母线电压
+    "n_rpm": "rpm",           # 转速
+    "I_rms": "A",
+    "I_peak": "A",
+    "R_phase": "Ohm",         # 参考温度相电阻
+    "R_ref": "Ohm",           # 改匝数前的基准相电阻
+    "K_f": "1",               # 槽满率
+    "A_cu_net": "mm2",        # 每槽净铜面积
+    "A_cu_enamel": "mm2",     # 每槽含漆铜面积
+    "A_slot": "mm2",          # 槽面积
+    "A_env": "mm2",           # 绕组包络面积
+    "A_case": "m2",           # 机壳外部散热面积
+    "T_out": "N.m",
+    "P_out": "W",
+    "P_loss": "W",
+    "eta": "%",
 }
 INTERVAL_CAPABLE = ("Rws", "Rsa", "Pcu", "Pfe", "Ta", "alpha")
 
+# 单位等价归一化：工程文档里 mm² / mm2、N·m / N.m、℃ / C、Ω / Ohm 混用是常态，
+# 严格字符比较会把合法数据误拦成 BLOCK。只归一化写法，不改物理含义。
+_UNIT_ALIASES = {
+    "²": "2", "³": "3", "·": ".", "⋅": ".", "∙": ".",
+    "Ω": "Ohm", "ω": "Ohm", "℃": "C", "°": "", " ": "",
+}
+
+
+def _norm_unit(u: str) -> str:
+    s = str(u or "").strip()
+    for src, dst in _UNIT_ALIASES.items():
+        s = s.replace(src, dst)
+    return s.lower()
+
+# A 路三状态
+AUDIT_PASS = "AUDIT_PASS"
+AUDIT_REVIEW = "AUDIT_REVIEW"
+AUDIT_BLOCKED = "AUDIT_BLOCKED"
+
 STATUS_RANK = {
-    "POINT_PASS": 0, "BOX_PASS": 0,
-    "MODEL_REVIEW": 1, "SOLVER_UNKNOWN": 1,
-    "MODEL_FAIL": 2, "COUPLING_FAILED": 2,
+    "POINT_PASS": 0, "BOX_PASS": 0, "AUDIT_PASS": 0,
+    "MODEL_REVIEW": 1, "SOLVER_UNKNOWN": 1, "AUDIT_REVIEW": 1,
+    "MODEL_FAIL": 2, "COUPLING_FAILED": 2, "AUDIT_BLOCKED": 2,
 }
 
 
@@ -152,6 +218,14 @@ class Case:
     contract_errors: List[str] = field(default_factory=list)
     source_type: str = ""
     benchmark: str = ""
+    plugins: Optional[List[str]] = None   # case 里显式声明的插件；None = 文件里没这个字段
+                                          # 不用 [] 作默认：[] 是「显式关闭全部」，
+                                          # 与「没声明」必须区分，否则 env/默认两级永远走不到
+    # ---- A 路反推器所需的顶层扩展（都可缺省）----
+    reported: Dict[str, Any] = field(default_factory=dict)          # 对方申报的节点温度
+    meta: Dict[str, Any] = field(default_factory=dict)              # 冷却方式、极对数等辅助口径
+    operating_points: List[Dict[str, Any]] = field(default_factory=list)  # 多工况点
+    topology_spec: Dict[str, Any] = field(default_factory=dict)     # 支路热阻拓扑声明
 
     def get(self, key: str) -> Optional[Param]:
         return self.params.get(key)
@@ -199,6 +273,13 @@ def parse_case_doc(raw: Dict[str, Any], source: str) -> Case:
             params[k] = _mk_param(k, v)
         except Exception as e:
             contract.append(f"params.{k} 解析失败: {type(e).__name__}")
+    decl: Optional[List[str]] = None
+    if raw.get("plugins") is not None:
+        try:
+            decl = plugins_from_case(raw) or []
+        except PluginError as e:
+            decl = None
+            contract.append(f"plugins 字段非法：{e}")
     return Case(
         case_id=str(raw.get("case_id") or Path(source).stem),
         description=str(raw.get("description", "")),
@@ -212,59 +293,51 @@ def parse_case_doc(raw: Dict[str, Any], source: str) -> Case:
         contract_errors=contract,
         source_type=str(raw.get("source_type") or ""),
         benchmark=str(raw.get("benchmark") or ""),
+        plugins=decl,
+        # 顶层 reported 与 AI 组存档用的 _ai_reported 是同一个语义：对方申报的温度
+        reported=dict(raw.get("reported") or raw.get("_ai_reported") or {}),
+        meta=dict(raw.get("meta") or {}),
+        operating_points=list(raw.get("operating_points") or []),
+        topology_spec=dict(raw.get("topology_spec") or {}),
     )
 
 
 # --------------------------------------------------------------------------
-# 几何缩放（结果覆盖 Rws/Rsa/Rrs，并附 ±不确定度区间）
+# 插件结果 → 审计 Issue
 # --------------------------------------------------------------------------
 
 
-def apply_scaling(case: Case) -> Tuple[Dict[str, Param], List[Issue], Optional[Dict[str, Any]]]:
-    sc = case.scaling
-    if not sc:
-        return {}, [], None
+_SEVERITIES = ("BLOCK", "REVIEW", "WARN", "INFO")
 
-    try:
-        ref_geom = Geometry(**sc["reference_geometry"])
-        geom = Geometry(**sc["geometry"])
-        ref_R = sc["reference_R"]
-    except (KeyError, TypeError) as e:
-        return {}, [Issue("S0_scaling_input", "BLOCK",
-                          f"scaling 段字段不全：{e}", ())], None
 
-    res = scale(
-        ref_geom, ref_R, geom,
-        rel_unc=float(sc.get("relative_uncertainty", 0.25)),
-        max_dev=float(sc.get("max_deviation", 0.30)),
-    )
+def _to_issues(raw: Iterable[Dict[str, Any]]) -> List[Issue]:
+    out: List[Issue] = []
+    for d in raw or []:
+        sev = str(d.get("severity", "INFO")).upper()
+        out.append(Issue(
+            code=str(d.get("code") or "B0_plugin_issue"),
+            severity=sev if sev in _SEVERITIES else "INFO",
+            message=str(d.get("message", "")),
+            params=tuple(d.get("params") or ()),
+            detail=dict(d.get("detail") or {}),
+        ))
+    return out
 
-    derived: Dict[str, Param] = {}
-    pal = Palette(method="analytic_scaled", scope="motor")
-    derived["Rws"] = Param("Rws", round(res.Rws, 4), "K/W", pal, verified=True,
-                           source="几何缩放律（未校准）",
-                           interval=(round(res.Rws_interval[0], 4),
-                                     round(res.Rws_interval[1], 4)))
-    derived["Rsa"] = Param("Rsa", round(res.Rsa, 4), "K/W", pal, verified=True,
-                           source="几何缩放律（未校准）",
-                           interval=(round(res.Rsa_interval[0], 4),
-                                     round(res.Rsa_interval[1], 4)))
-    derived["Rrs"] = Param("Rrs", round(res.Rrs, 4), "K/W", pal, verified=True,
-                           source="几何缩放律（未校准）",
-                           interval=(round(res.Rrs_interval[0], 4),
-                                     round(res.Rrs_interval[1], 4)))
 
-    issues = [Issue("S1_scaling_applied", "INFO",
-                    f"Rws/Rsa/Rrs 由几何缩放律给出（±{sc.get('relative_uncertainty', 0.25) * 100:.0f}%），未校准",
-                    ("Rws", "Rsa", "Rrs"), res.as_dict())]
-    if not res.within_reference:
+def _run_plugin_into(name: str, case: Case, issues: List[Issue]) -> Dict[str, Any]:
+    """跑一个插件，把它的 issues 并入审计 Issue 表。
+
+    约定：插件被**显式启用**却跑不起来，一定记 BLOCK，不静默降级。
+    """
+    out = run_plugin(name, case)
+    got = _to_issues(out.get("issues") or [])
+    issues.extend(got)
+    if not out.get("ok") and not any(i.severity == "BLOCK" for i in got):
         issues.append(Issue(
-            "S2_extrapolation", "REVIEW",
-            f"候选几何偏离基准 {res.max_deviation * 100:.1f}%"
-            f"（阈值 {sc.get('max_deviation', 0.30) * 100:.0f}%）：属外推，缩放律不保证成立",
-            ("Rws", "Rsa", "Rrs"),
-            {"ratios": res.as_dict()["ratios"]}))
-    return derived, issues, res.as_dict()
+            "B0_plugin_failed", "BLOCK",
+            f"插件 {name} 运行失败：{out.get('reason')}",
+            (), {"plugin": name, "traceback": out.get("traceback")}))
+    return out
 
 
 # --------------------------------------------------------------------------
@@ -275,16 +348,25 @@ def apply_scaling(case: Case) -> Tuple[Dict[str, Param], List[Issue], Optional[D
 def validate(case: Case) -> List[Issue]:
     issues: List[Issue] = []
 
-    # V1 必需参数缺失 / 单位不符
-    for key, unit in REQUIRED.items():
+    # V1 必需参数缺失 / 单位不符（A 路口径：只要损耗与环境）
+    for key, unit in REQUIRED_A.items():
         p = case.params.get(key)
         if p is None:
             issues.append(Issue("V1_missing", "BLOCK", f"缺少必需参数 {key}", (key,)))
             continue
-        if p.unit != unit:
+        if _norm_unit(p.unit) != _norm_unit(unit):
             issues.append(Issue(
                 "V1_unit", "BLOCK",
                 f"{key} 单位应为 {unit}，实际 {p.unit or '(空)'}", (key,)))
+
+    # V1b 可选参数若出现，单位也必须对（A 路不要求存在，但不能错）
+    # code 仍用 V1_unit：语义是「单位不符」，变的是「是否必须存在」，不是严重性。
+    for key, unit in OPTIONAL.items():
+        p = case.params.get(key)
+        if p is not None and p.unit and _norm_unit(p.unit) != _norm_unit(unit):
+            issues.append(Issue(
+                "V1_unit", "BLOCK",
+                f"{key} 单位应为 {unit}，实际 {p.unit}", (key,)))
 
     # V2 未验证数据硬拦截（方案 7.2 的核心）
     # benchmark 例外：基准数据的用途是测试规则，不是产生推荐。若没有这个例外，
@@ -361,7 +443,7 @@ def validate(case: Case) -> List[Issue]:
 
 
 def check_domain(case: Case) -> List[Issue]:
-    """方案 11.10：候选超出校准适用域 ⇒ MODEL_REVIEW。
+    """方案 11.10：候选超出校准适用域 ⇒ REVIEW。
 
     domain 支持两种写法：
         [lo, hi]                                   旧形式，无参考温度声明
@@ -425,87 +507,93 @@ def check_domain(case: Case) -> List[Issue]:
 
 
 # --------------------------------------------------------------------------
-# 计算（把 Case 翻译成 thermal 的入参）
+# 审计
 # --------------------------------------------------------------------------
 
 
-def to_cas(case: Case, which: str = "point") -> Cas:
-    def pick(key: str, default: float) -> float:
-        p = case.params.get(key)
-        if p is None:
-            return default
-        if which == "point":
-            return p.value
-        lo, hi = p.interval if p.interval else (p.value, p.value)
-        return hi if which == "hi" else lo
-
-    return Cas(
-        name=f"{case.case_id}[{which}]",
-        Rws=pick("Rws", 1.0),
-        Rsa=pick("Rsa", 1.0),
-        P0=pick("Pcu", 0.0),
-        Pfe=pick("Pfe", 0.0),
-        Ta=pick("Ta", 25.0),
-        Tref=pick("Tref", 20.0),
-        alpha=pick("alpha", 0.00393),
-        Tw_max=float(case.limits.get("Tw_max", 155.0)),
-        temperature_type=str(case.limits.get("temperature_type", "mean")),
-    )
+def _audit_only_status(issues: List[Issue]) -> Dict[str, Any]:
+    """A 路结论：只看口径/契约/溯源，不产生温度。"""
+    review = [i for i in issues if i.severity == "REVIEW"]
+    if review:
+        return {"status": AUDIT_REVIEW,
+                "reasons": sorted({i.code for i in review})}
+    return {"status": AUDIT_PASS, "reasons": []}
 
 
-def has_intervals(case: Case) -> bool:
-    return any(case.params[k].interval for k in INTERVAL_CAPABLE
-               if k in case.params and case.params[k].interval)
+def audit(case: Case, plugins: Any = None) -> Dict[str, Any]:
+    """审计一个算例。
 
+    plugins=None 时按 4 级优先级解析（默认一个都不开 = A 路）。
+    plugins=("thermal",) 或 "thermal,scaling" 时才运行 B 路能力。
+    """
+    issues: List[Issue] = []
 
-def uses_three_node(case: Case) -> bool:
-    p = case.params.get("Peddy")
-    return bool(p and p.value > 0)
+    # ---- 插件解析 ----
+    try:
+        active, plugin_source = resolve_plugins(explicit=plugins, case=case)
+    except PluginError as e:
+        active, plugin_source = [], "error"
+        issues.append(Issue("B0_plugin_name", "BLOCK", str(e), ()))
 
+    if plugins is not None and case.plugins:
+        # CLI 显式覆盖了 case 的声明：留痕，免得「我明明在文件里写了插件」变成悬案
+        missing = [p for p in case.plugins if p not in active]
+        if missing:
+            issues.append(Issue(
+                "B1_plugin_overridden", "INFO",
+                f"case 声明了插件 {', '.join(missing)}，被命令行显式覆盖为关闭",
+                tuple(missing), {"active": list(active)}))
 
-def to_cas3(case: Case) -> Cas3:
-    base = to_cas(case, "point")
-    return Cas3(
-        name=base.name, Rws=base.Rws, Rsa=base.Rsa, P0=base.P0, Pfe=base.Pfe,
-        Ta=base.Ta, Tref=base.Tref, alpha=base.alpha, Tw_max=base.Tw_max,
-        temperature_type=base.temperature_type,
-        Peddy=case.val("Peddy", 0.0),
-        Rrs=case.val("Rrs", 3.0),
-        Tr_max=float(case.limits.get("Tr_max", case.val("Tr_max", 150.0))),
-    )
+    # ---- scaling（可选）：先跑，因为它改写 Rws/Rsa/Rrs ----
+    scaling_result: Optional[Dict[str, Any]] = None
+    overwritten: List[Dict[str, Any]] = []
+    if "scaling" in active:
+        out = _run_plugin_into("scaling", case, issues)
+        if out.get("ok"):
+            for k, raw in (out.get("answer", {}).get("derived") or {}).items():
+                old = case.params.get(k)
+                try:
+                    new = _mk_param(k, raw)
+                except Exception as e:  # noqa: BLE001
+                    issues.append(Issue(
+                        "B0_plugin_bad_param", "BLOCK",
+                        f"scaling 插件给出的 {k} 无法解析：{type(e).__name__}", (k,)))
+                    continue
+                if old is not None and abs(old.value - new.value) > 1e-9:
+                    overwritten.append({
+                        "param": k,
+                        "declared": old.value,
+                        "scaled": new.value,
+                        "unit": new.unit,
+                        "declared_source": old.source,
+                    })
+                case.params[k] = new
+            scaling_result = out.get("answer", {}).get("result")
+            if overwritten:
+                # 静默覆盖是本项目最危险的失败方式：case 里手填的 Rws 被缩放值换掉，
+                # 而读文件的人以为手填的生效。这里记一条 INFO 并单独存字段，报告里必须显示。
+                issues.append(Issue(
+                    "S3_params_overwritten", "INFO",
+                    "几何缩放覆盖了 case 里手填的值：" + "；".join(
+                        f"{d['param']} {d['declared']}→{d['scaled']} {d['unit']}"
+                        for d in overwritten),
+                    tuple(d["param"] for d in overwritten),
+                    {"overwritten": overwritten}))
+    elif case.scaling:
+        issues.append(Issue(
+            "B1_scaling_skipped", "INFO",
+            "case 有 scaling 段但 scaling 插件未启用：Rws/Rsa/Rrs 用 case 里的原值，不缩放",
+            ("Rws", "Rsa", "Rrs")))
 
-
-def to_boxcas(case: Case, peddy: float = 0.0) -> BoxCas:
-    def rng(key: str, default: float) -> Tuple[float, float]:
-        p = case.params.get(key)
-        if p is None:
-            return (default, default)
-        return p.interval if p.interval else (p.value, p.value)
-
-    pfe_lo, pfe_hi = rng("Pfe", 0.0)
-    return BoxCas(
-        name=case.case_id,
-        Rws=rng("Rws", 1.0), Rsa=rng("Rsa", 1.0),
-        P0=rng("Pcu", 0.0), Pfe=(pfe_lo + peddy, pfe_hi + peddy), Ta=rng("Ta", 25.0),
-        alpha=rng("alpha", 0.00393), Tref=float(case.val("Tref", 20.0)),
-        Tw_max=float(case.limits.get("Tw_max", 155.0)),
-        temperature_type=str(case.limits.get("temperature_type", "mean")),
-        gamma=float(case.calibration.get("gamma", 2.0)),
-    )
-
-
-def audit(case: Case) -> Dict[str, Any]:
-    derived, s_issues, s_result = apply_scaling(case)
-    if derived:
-        case.params.update(derived)
-
-    # 溯源：case 哈希 + 外部来源哈希校验（方案 7.2）
+    # ---- 溯源：case 哈希 + 外部来源哈希校验（方案 7.2） ----
     base_dir = Path(case.source_file).parent if case.source_file else Path.cwd()
     src_checks = check_sources(case.sources, base_dir)
     src_bad = [s for s in src_checks if not s.ok]
     # 哈希基于「规范化审计输入」而非文件字节：
     # 同样的内容无论是 .json 还是 .jsonl 的一行，指纹必须相同，
     # 否则账本会把"换了个文件格式"误报成"输入被修改"。
+    # 插件列表也算输入的一部分：A 路与 B 路的审计输入本来就不同，
+    # 混用同一个 hash 会让账本把"换了运行模式"误报成"输入被改"。
     payload = json.dumps({
         "case_id": case.case_id,
         "params": {k: v.as_dict() for k, v in sorted(case.params.items())},
@@ -513,12 +601,13 @@ def audit(case: Case) -> Dict[str, Any]:
         "calibration": case.calibration,
         "domain": case.domain,
         "scaling": case.scaling,
+        "plugins": sorted(active),
     }, sort_keys=True, ensure_ascii=False).encode("utf-8")
     case_hash = sha256_bytes(payload)
     fp = code_fingerprint()
     code_digest = fingerprint_digest(fp)
 
-    issues = validate(case) + check_domain(case) + s_issues
+    issues = issues + validate(case) + check_domain(case)
     if case.contract_errors:
         issues.append(Issue(
             "P0_contract", "BLOCK",
@@ -529,6 +618,14 @@ def audit(case: Case) -> Dict[str, Any]:
             "P1_source_hash", "BLOCK",
             "外部来源哈希不符或文件缺失：" + "；".join(f"{s.path}（{s.reason}）" for s in src_bad),
             (), {"sources": [s.__dict__ for s in src_bad]}))
+
+    # ---- A 路反推器与电磁-热自洽性判据集（路线图第 3、4 步）----
+    consistency = audit_case_consistency(case)
+    if "thermal" not in active:
+        # 只在 A 路并入 issues。B 路只把 consistency 挂在 result 上供查阅——
+        # 否则会改变 v0.2 已冻结的 B 路 34 算例结论（cases_ai 的 V2_optimistic 拦截）。
+        issues.extend(_to_issues(consistency.get("issues") or []))
+
     blocked = [i for i in issues if i.severity == "BLOCK"]
     review = [i for i in issues if i.severity == "REVIEW"]
 
@@ -540,6 +637,12 @@ def audit(case: Case) -> Dict[str, Any]:
         "case_id": case.case_id,
         "description": case.description,
         "source_file": case.source_file,
+        "plugins": {
+            "active": list(active),
+            "source": plugin_source,
+            "declared_in_case": list(case.plugins or []),
+            "available": plugin_names(),
+        },
         "params": {k: v.as_dict() for k, v in case.params.items()},
         "limits": case.limits,
         "calibration": {
@@ -555,7 +658,9 @@ def audit(case: Case) -> Dict[str, Any]:
             "block_count": len(blocked),
             "review_count": len(review),
         },
-        "scaling": s_result,
+        "scaling": scaling_result,
+        "params_overwritten": overwritten,
+        "consistency": consistency,
         "provenance": {
             "case_hash": case_hash,
             "code_digest": code_digest,
@@ -568,111 +673,110 @@ def audit(case: Case) -> Dict[str, Any]:
             ],
             "audited_at": now_iso(),
         },
-        "disclaimer": "Model-level constraint audit only; not physical validation.",
+        "disclaimer": (
+            "A-road: palette/contract/provenance audit only; no temperature is produced."
+            if "thermal" not in active else
+            "Model-level constraint audit only; not physical validation."
+        ),
     }
 
-    # 硬拦截：不计算温度
+    # ---- 硬拦截：不计算温度 ----
     if blocked:
-        result["coupling"] = {"status": "NOT_RUN",
-                              "reason": "blocked_by_validation"}
+        result["coupling"] = {
+            "status": "NOT_RUN",
+            "reason": "blocked_by_validation",
+        }
         result["temperature"] = None
+        # 输入被判死，与「是否算温度」无关：A 路与 B 路统一报 AUDIT_BLOCKED。
+        # 只有「求解器没给出结论」（插件失败 / 插件缺参）才报 SOLVER_UNKNOWN——
+        # 前者是数据不可用，后者是求解器不可用，两个概念不能混。
         result["audit"] = {
-            "overall_status": "SOLVER_UNKNOWN",
+            "overall_status": AUDIT_BLOCKED,
             "reasons": ["input_blocked: " + ", ".join(sorted({i.code for i in blocked}))],
         }
         return result
 
-    # 计算
-    three = uses_three_node(case)
-    if three:
-        cas3 = to_cas3(case)
-        r = solve_three(cas3)
-        cas = cas3          # 供压力测试复用（公式与两热阻同形）
-        result["model"] = {
-            "nodes": 3,
-            "Peddy_W": cas3.Peddy, "Rrs_KpW": cas3.Rrs, "Tr_max_C": cas3.Tr_max,
+    # ---- B 路：插件跑温度 ----
+    if "thermal" in active:
+        tout = run_plugin("thermal", case)
+        plugin_issues = _to_issues(tout.get("issues") or [])
+        issues.extend(plugin_issues)
+        result["validation"]["issues"] = [i.__dict__ for i in issues]
+
+        if plugin_issues:
+            pb = [i for i in plugin_issues if i.severity == "BLOCK"]
+            if pb:
+                result["validation"]["blocked"] = True
+                result["validation"]["block_count"] = len(pb)
+                result["coupling"] = {"status": "NOT_RUN",
+                                      "reason": "plugin_rejected_input"}
+                result["temperature"] = None
+                result["audit"] = {
+                    "overall_status": "SOLVER_UNKNOWN",
+                    "reasons": ["plugin_blocked: "
+                                + ", ".join(sorted({i.code for i in pb}))],
+                }
+                return result
+
+        if not tout.get("ok"):
+            result["validation"]["blocked"] = True
+            result["validation"]["block_count"] = 1
+            result["coupling"] = {"status": "NOT_RUN", "reason": "plugin_failed"}
+            result["temperature"] = None
+            result["audit"] = {
+                "overall_status": "SOLVER_UNKNOWN",
+                "reasons": [f"plugin_failed: {tout.get('reason')}"],
+            }
+            return result
+
+        answer = tout.get("answer") or {}
+        for k in ("model", "coupling", "temperature", "verdict_point",
+                  "verdict_box", "box_coupling", "stress_tests"):
+            if k in answer:
+                result[k] = answer[k]
+
+        overall = str(answer.get("verdict_status", "SOLVER_UNKNOWN"))
+        reasons = list(answer.get("verdict_reasons") or [])
+
+        # 与 v0.2 逐行等价：耦合失败时早退，不叠加域/校准降级。
+        # （v0.2 就是这样：早退分支只带 divergence 原因。这里先保持等价，
+        #   「耦合失败时是否该同时报出输入超域」留到第 3 步一起改。）
+        if overall == "COUPLING_FAILED":
+            result["audit"] = {
+                "overall_status": overall,
+                "reasons": sorted(set(reasons), key=str),
+            }
+            return result
+
+        # 方案 6.1：无校准 ⇒ 不得推荐
+        if not cal_present and overall in ("POINT_PASS", "BOX_PASS"):
+            overall = "MODEL_REVIEW"
+            reasons.append("calibration_missing")
+
+        # 方案 11.10：超适用域 ⇒ 不得推荐
+        if review:
+            if overall in ("POINT_PASS", "BOX_PASS"):
+                overall = "MODEL_REVIEW"
+            reasons.extend(sorted({i.code for i in review}))
+
+        result["audit"] = {
+            "overall_status": overall,
+            "reasons": sorted(set(reasons), key=str),
         }
-    else:
-        cas = to_cas(case, "point")
-        r = solve_point(cas)
-        result["model"] = {"nodes": 2}
-
-    result["coupling"] = {
-        "status": r["status"], "g": round(cas.g, 4),
-        "iterations": r.get("iterations"),
-        "error_bound_K": r.get("error_bound_K"),
-    }
-
-    if r["status"] != "CONVERGED":
-        result["temperature"] = {"winding_point_C": None}
-        result["audit"] = {"overall_status": "COUPLING_FAILED",
-                           "reasons": [r.get("reason", "divergence")]}
         return result
 
-    if three:
-        vp = judge_three(r, cas3, delta_cal)
-        result["temperature"] = {
-            "winding_point_C": round(r["Tw"], 3),
-            "winding_corrected_C": round(r["Tw"] + delta_cal, 3),
-            "winding_corrected_interval_C": None,
-            "rotor_point_C": round(r["Tr"], 3),
-            "stator_point_C": round(r["Ts"], 3),
-            "total_loss_W": round(r["total_loss"], 3),
-        }
-    else:
-        vp = judge_point(r, cas, delta_cal)
-        result["temperature"] = {
-            "winding_point_C": round(r["Tw"], 3),
-            "winding_corrected_C": round(r["Tw"] + delta_cal, 3),
-            "winding_corrected_interval_C": None,
-        }
-    result["verdict_point"] = vp
-
-    overall = vp["status"]
-    reasons = list(vp.get("reasons", []))
-
-    # 区间
-    if has_intervals(case):
-        box = to_boxcas(case, case.val("Peddy", 0.0) if three else 0.0)
-        rb = solve_box(box)
-        result["box_coupling"] = rb
-        if rb["status"] == "CONVERGED":
-            vb = judge_box(rb, box, delta_cal)
-            result["temperature"]["winding_corrected_interval_C"] = [
-                round(rb["Tw_lo"] + delta_cal, 3),
-                round(rb["Tw_hi"] + delta_cal, 3),
-            ]
-            result["verdict_box"] = vb
-            if STATUS_RANK[vb["status"]] > STATUS_RANK[overall]:
-                overall = vb["status"]
-                reasons.extend(vb.get("reasons", []))
-        else:
-            result["verdict_box"] = rb
-            if STATUS_RANK[rb["status"]] > STATUS_RANK[overall]:
-                overall = rb["status"]
-                reasons.append(rb.get("reason", "box_solver_failed"))
-
-    # 压力测试（只对点值做）
-    st = stress_test(cas, vp["status"], delta_cal)
-    result["stress_tests"] = st
-    if st["decision_flipped"]:
-        overall = "MODEL_REVIEW"
-        reasons.append("decision_flipped_under_stress")
-
-    # 方案 6.1：无校准 ⇒ 不得推荐
-    if not cal_present and overall in ("POINT_PASS", "BOX_PASS"):
-        overall = "MODEL_REVIEW"
-        reasons.append("calibration_missing")
-
-    # 方案 11.10：超适用域 ⇒ 不得推荐
-    if review:
-        if overall in ("POINT_PASS", "BOX_PASS"):
-            overall = "MODEL_REVIEW"
-        reasons.extend(sorted({i.code for i in review}))
-
+    # ---- A 路：不给温度，只给口径/契约/溯源结论 ----
+    result["coupling"] = {
+        "status": "DISABLED",
+        "reason": "thermal plugin not enabled (A-road mode)",
+    }
+    result["temperature"] = None
+    v = _audit_only_status(issues)
     result["audit"] = {
-        "overall_status": overall,
-        "reasons": sorted(set(reasons), key=str),
+        "overall_status": v["status"],
+        "reasons": v["reasons"],
+        "note": ("AUDIT_PASS 表示口径/契约/溯源及已提供的电磁-热自洽性判据过审，"
+                 "不表示数据可信，也不表示任何电机的真实合格性。"),
     }
     return result
 
@@ -687,16 +791,35 @@ def print_report(o: Dict[str, Any]) -> None:
     t = o.get("temperature") or {}
     a = o.get("audit") or {}
     v = o.get("validation") or {}
+    p = o.get("plugins") or {}
     print("-" * 78)
-    print(f"算例：{o['case_id']}   {o.get('description','')}")
+    print(f"算例：{o['case_id']}   {o.get('description', '')}")
+    act = p.get("active") or []
+    print(f"  插件：{', '.join(act) if act else '(无，A 路)'}"
+          f"   来源={p.get('source')}")
+    ow = o.get("params_overwritten") or []
+    if ow:
+        print("  缩放覆盖：" + "；".join(
+            f"{d['param']} 手填 {d['declared']} → 缩放 {d['scaled']} {d['unit']}"
+            for d in ow))
     print(f"  校验：{'BLOCKED' if v.get('blocked') else 'OK'}"
-          f"（block {v.get('block_count',0)} / review {v.get('review_count',0)}）")
+          f"（block {v.get('block_count', 0)} / review {v.get('review_count', 0)}）")
+    cons = o.get("consistency") or {}
+    if cons.get("ran"):
+        print(f"  自洽性判据：{', '.join(cons.get('checks_run') or [])}")
     for i in v.get("issues", []):
         if i["severity"] in ("BLOCK", "REVIEW"):
             print(f"    [{i['severity']}] {i['code']}: {i['message']}")
     if c.get("status") == "NOT_RUN":
         print(f"  耦合：未运行（{c.get('reason')}）")
         print(f"  总体结论：{a.get('overall_status')}  {a.get('reasons')}")
+        return
+    if c.get("status") == "DISABLED":
+        print("  温度：未计算（A 路不产生温度）")
+        print(f"  总体结论：{a.get('overall_status')}  {a.get('reasons')}")
+        note = a.get("note")
+        if note:
+            print(f"  注：{note}")
         return
     print(f"  耦合：{c.get('status')}  g={c.get('g')}  iters={c.get('iterations')}")
     if t.get("winding_point_C") is not None:
@@ -734,7 +857,12 @@ def _load_cases(f: Path) -> List[Case]:
     return [load_case(f)]
 
 
-def cmd_audit(paths: List[str]) -> int:
+# --------------------------------------------------------------------------
+# 命令
+# --------------------------------------------------------------------------
+
+
+def cmd_audit(paths: List[str], plugins: Any = None) -> int:
     files: List[Path] = []
     for p in paths:
         pp = Path(p)
@@ -762,7 +890,7 @@ def cmd_audit(paths: List[str]) -> int:
         except Exception as e:
             print(f"[失败] {f.name}: {type(e).__name__}: {e}")
     for case in all_cases:
-        o = audit(case)
+        o = audit(case, plugins=plugins)
 
         # 账本：只追加，改过的输入会留下"变更"痕迹（方案 7.2）
         prov = o["provenance"]
@@ -792,7 +920,8 @@ def cmd_audit(paths: List[str]) -> int:
         for o in reports:
             print(f"  {o['case_id']:<28}{o['audit']['overall_status']}")
     print(f"JSON：{out}")
-    bad = [o for o in reports if o["audit"]["overall_status"] in ("MODEL_FAIL", "COUPLING_FAILED")]
+    bad = [o for o in reports
+           if o["audit"]["overall_status"] in ("MODEL_FAIL", "COUPLING_FAILED")]
     return 0 if not bad else 1
 
 
@@ -818,18 +947,50 @@ def cmd_palette(args: List[str]) -> int:
     return subprocess.call([sys.executable, str(here / "mdca_palette.py"), "--scan"] + args)
 
 
-def cmd_selftest() -> int:
-    here = Path(__file__).resolve().parent
-    ok = True
-    print("=== mdca.py 冒烟测试 ===")
+def cmd_plugins() -> int:
+    print("=" * 78)
+    print("MDCA 插件")
+    print("=" * 78)
+    for d in describe_plugins():
+        print(f"  {d['name']:<10}{d['road']} 路  默认{'开' if d['default_enabled'] else '关'}"
+              f"  {d['module']:<24}{d['summary']}")
+    print()
+    print(f"默认启用：{list(DEFAULT_PLUGINS) or '(无，即 A 路)'}")
+    print("启用方式：--plugins thermal,scaling  或 case 里 \"plugins\": [\"thermal\"]")
+    print("        或环境变量 MDCA_PLUGINS=thermal,scaling")
+    return 0
 
-    # 1) 缺参 → BLOCK
+
+def cmd_selftest(plugins: Any = None) -> int:
+    """A 路冒烟；带 --plugins 时追加 B 路冒烟。"""
+    ok = True
+    try:
+        active, psource = resolve_plugins(explicit=plugins)
+    except PluginError as e:
+        print(f"插件参数错误：{e}")
+        return 2
+
+    def base_case(cid: str, *, keep=("Rws", "Rsa", "Pcu", "Pfe", "Ta")) -> Case:
+        vals = {"Rws": (1.16, "K/W"), "Rsa": (2.03, "K/W"), "Pcu": (13.6, "W"),
+                "Pfe": (5.33, "W"), "Ta": (40.0, "C")}
+        ps = {k: Param(k, vals[k][0], vals[k][1], Palette(method="analytic"))
+              for k in keep}
+        return Case(cid, "", ps, {"Tw_max": 155.0}, {}, {})
+
+    print("=== mdca.py 冒烟测试（A 路）===")
+
+    # 输入被判死统一报 AUDIT_BLOCKED（A 路与 B 路一致）：
+    # AUDIT_BLOCKED = 数据不可用；SOLVER_UNKNOWN = 求解器没给出结论（插件失败/缺参）。
+    expect_block = AUDIT_BLOCKED
+
+    # 1) 缺必需参数 → BLOCK
     c = Case("t1", "", {k: Param(k, 1.0, u, Palette(method="analytic"))
-                        for k, u in list(REQUIRED.items())[:-1]},
+                        for k, u in list(REQUIRED_A.items())[:-1]},
              {}, {}, {})
-    o = audit(c)
-    r = o["audit"]["overall_status"] == "SOLVER_UNKNOWN"
-    print(f"  ① 缺必需参数 → 拒绝计算          {'PASS' if r else 'FAIL'}")
+    o = audit(c, plugins=plugins)
+    r = o["audit"]["overall_status"] == expect_block
+    print(f"  ① 缺必需参数(Pfe/Ta) → 拦截        {'PASS' if r else 'FAIL'}"
+          f"（{o['audit']['overall_status']}）")
     ok &= r
 
     # 2) 未验证且无声明 → BLOCK
@@ -837,20 +998,27 @@ def cmd_selftest() -> int:
           for k, (v, u) in {"Rws": (1.16, "K/W"), "Rsa": (2.03, "K/W"),
                             "Pcu": (13.6, "W"), "Pfe": (5.33, "W"), "Ta": (40.0, "C")}.items()}
     ps["Pcu"].verified = False
-    o = audit(Case("t2", "", ps, {"Tw_max": 155.0}, {}, {}))
-    r = o["audit"]["overall_status"] == "SOLVER_UNKNOWN"
-    print(f"  ② 未验证数据无声明 → 拒绝计算    {'PASS' if r else 'FAIL'}")
+    o = audit(Case("t2", "", ps, {"Tw_max": 155.0}, {}, {}), plugins=plugins)
+    r = o["audit"]["overall_status"] == expect_block
+    print(f"  ② 未验证数据无声明 → 拦截          {'PASS' if r else 'FAIL'}"
+          f"（{o['audit']['overall_status']}）")
     ok &= r
 
-    # 3) 未验证但声明保守 → 放行
+    # 3) 未验证但声明保守 → A 路放行（不再要求算温度）
     ps2 = {k: Param(k, v, u, Palette(method="analytic"))
            for k, (v, u) in {"Rws": (1.16, "K/W"), "Rsa": (2.03, "K/W"),
                              "Pcu": (13.6, "W"), "Pfe": (5.33, "W"), "Ta": (40.0, "C")}.items()}
     ps2["Pfe"].verified = False
     ps2["Pfe"].conservatism = "conservative"
-    o = audit(Case("t3", "", ps2, {"Tw_max": 155.0}, {}, {}))
-    r = o["coupling"]["status"] == "CONVERGED"
-    print(f"  ③ 未验证但声明保守 → 放行        {'PASS' if r else 'FAIL'}")
+    o = audit(Case("t3", "", ps2, {"Tw_max": 155.0}, {}, {}), plugins=plugins)
+    if "thermal" in active:
+        r = o["coupling"]["status"] == "CONVERGED"
+        label = "未验证但声明保守 → 放行(算温度)"
+    else:
+        r = o["audit"]["overall_status"] == AUDIT_PASS
+        label = "未验证但声明保守 → 放行(仅审计)"
+    print(f"  ③ {label:<28}{'PASS' if r else 'FAIL'}"
+          f"（{o['audit']['overall_status']}）")
     ok &= r
 
     # 4) 口径冲突 → BLOCK
@@ -859,9 +1027,9 @@ def cmd_selftest() -> int:
                              "Pcu": (13.6, "W"), "Pfe": (5.33, "W"), "Ta": (40.0, "C")}.items()}
     ps3["Pcu"].palette = Palette(turns="6")
     ps3["Pfe"].palette = Palette(turns="8")
-    o = audit(Case("t4", "", ps3, {"Tw_max": 155.0}, {}, {}))
+    o = audit(Case("t4", "", ps3, {"Tw_max": 155.0}, {}, {}), plugins=plugins)
     r = o["validation"]["blocked"]
-    print(f"  ④ 口径冲突（6匝 vs 8匝）→ 拦截   {'PASS' if r else 'FAIL'}")
+    print(f"  ④ 口径冲突（6匝 vs 8匝）→ 拦截     {'PASS' if r else 'FAIL'}")
     ok &= r
 
     # 5) 超适用域 → REVIEW
@@ -870,31 +1038,86 @@ def cmd_selftest() -> int:
                              "Pcu": (13.6, "W"), "Pfe": (5.33, "W"), "Ta": (40.0, "C")}.items()}
     o = audit(Case("t5", "", ps4, {"Tw_max": 155.0},
                    {"delta_cal_K": 10.0, "source_type": "external_model_mismatch"},
-                   {"Ta": [20.0, 30.0]}))
+                   {"Ta": [20.0, 30.0]}), plugins=plugins)
     r = "D1_out_of_domain" in o["audit"]["reasons"]
-    print(f"  ⑤ 环境温度超适用域 → REVIEW      {'PASS' if r else 'FAIL'}")
-    ok &= r
-
-    # 6) 正常算例（有校准）→ PASS
-    o = audit(Case("t6", "", ps4, {"Tw_max": 155.0},
-                   {"delta_cal_K": 5.0, "source_type": "external_model_mismatch"}, {}))
-    r = o["audit"]["overall_status"] in ("POINT_PASS", "MODEL_FAIL")
-    print(f"  ⑥ 有校准且未超限 → 给出判定      {'PASS' if r else 'FAIL'}"
+    print(f"  ⑤ 环境温度超适用域 → REVIEW        {'PASS' if r else 'FAIL'}"
           f"（{o['audit']['overall_status']}）")
     ok &= r
+
+    # 6) A 路核心：没有热阻也能审（走真实 JSON 路径，会过契约校验）
+    raw_no_r = {
+        "schema": "1.0", "case_id": "t6",
+        "params": {k: {"value": v, "unit": u, "palette": {"method": "analytic"}}
+                   for k, (v, u) in {"Pcu": (13.6, "W"), "Pfe": (5.33, "W"),
+                                     "Ta": (40.0, "C")}.items()},
+        "limits": {"Tw_max": 155.0},
+    }
+    o = audit(parse_case_doc(raw_no_r, "t6"), plugins=plugins)
+    if "thermal" in active:
+        r = o["validation"]["blocked"] is True
+        label = "缺 Rws/Rsa：B 路必须拦"
+    else:
+        r = (o["audit"]["overall_status"] == AUDIT_PASS
+             and o["temperature"] is None
+             and not o["validation"]["blocked"])
+        label = "无热阻也能过契约 → A 路通"
+    print(f"  ⑥ {label:<28}{'PASS' if r else 'FAIL'}"
+          f"（{o['audit']['overall_status']}）")
+    ok &= r
+
+    # 7) A 路不产生温度
+    o = audit(base_case("t7"), plugins=plugins)
+    if "thermal" in active:
+        r = o["temperature"] is not None
+        label = "B 路：确实产出了温度"
+    else:
+        r = o["temperature"] is None and o["coupling"]["status"] == "DISABLED"
+        label = "A 路：temperature 为 None"
+    print(f"  ⑦ {label:<28}{'PASS' if r else 'FAIL'}")
+    ok &= r
+
+    if "thermal" in active:
+        print()
+        print("=== mdca.py 冒烟测试（B 路）===")
+        # 8) 正常算例（有校准）→ 给出判定
+        o = audit(base_case("t8"), plugins=plugins)
+        r = o["audit"]["overall_status"] in ("POINT_PASS", "MODEL_FAIL", "MODEL_REVIEW")
+        print(f"  ⑧ 有温度结论但缺校准 → 不给 PASS    {'PASS' if r else 'FAIL'}"
+              f"（{o['audit']['overall_status']}）")
+        ok &= r
+
+        # 9) 带校准 + 三节点 → 节点数 3
+        ps5 = {k: Param(k, v, u, Palette(method="analytic"))
+               for k, (v, u) in {"Rws": (1.16, "K/W"), "Rsa": (2.03, "K/W"),
+                                 "Pcu": (13.6, "W"), "Pfe": (5.33, "W"), "Ta": (40.0, "C")}.items()}
+        ps5["Peddy"] = Param("Peddy", 15.24, "W", Palette(method="fem"))
+        ps5["Rrs"] = Param("Rrs", 3.0, "K/W", Palette(method="analytic"))
+        o = audit(Case("t9", "", ps5, {"Tw_max": 155.0, "Tr_max": 150.0},
+                       {"delta_cal_K": 5.0, "source_type": "external_model_mismatch"},
+                       {}), plugins=plugins)
+        r = (o.get("model") or {}).get("nodes") == 3
+        print(f"  ⑨ 带 Peddy → 自动走三节点         {'PASS' if r else 'FAIL'}"
+              f"（nodes={(o.get('model') or {}).get('nodes')}）")
+        ok &= r
+
+        # 10) 插件被显式要求但缺参数 → 不许静默降级成 A 路
+        o = audit(base_case("t10", keep=("Rws", "Pcu", "Pfe", "Ta")), plugins=plugins)
+        r = o["validation"]["blocked"] and o["temperature"] is None
+        print(f"  ⑩ 插件缺参数 → 拦截而非静默降级     {'PASS' if r else 'FAIL'}"
+              f"（{o['audit']['overall_status']}）")
+        ok &= r
 
     print(f"冒烟测试：{'全部通过' if ok else '有失败项'}")
     return 0 if ok else 1
 
 
-# --------------------------------------------------------------------------
-# 入口
-# --------------------------------------------------------------------------
-
-
-def cmd_check(args: List[str]) -> int:
-    """自检：随机数值回代 + 负例测试集（方案 7.3 + 10.1）。"""
-    import mdca_checks
+def cmd_check(args: List[str], plugins: Any = None) -> int:
+    """自检：随机数值回代（仅 B 路）+ 边界算例（A/B 各自的期望值）。"""
+    try:
+        active, _src = resolve_plugins(explicit=plugins)
+    except PluginError as e:
+        print(f"插件参数错误：{e}")
+        return 2
 
     here = Path(__file__).resolve().parent
     n = 500
@@ -905,13 +1128,23 @@ def cmd_check(args: List[str]) -> int:
             print(f"样本数无效：{args[0]}")
             return 2
 
-    rep = mdca_checks.run(n)
-    mdca_checks.print_report(rep)
-    ok_all = rep["ok"]
+    ok_all = True
+
+    # 随机数值回代验证的是 thermal/scaling 的实现，属于 B 路自检
+    if "thermal" in active:
+        import mdca_checks
+        rep = mdca_checks.run(n)
+        mdca_checks.print_report(rep)
+        ok_all = rep["ok"]
+    else:
+        print("=" * 78)
+        print("A 路自检：跳过随机回代（它验证的是温度与缩放实现，属 B 路）")
+        print("=" * 78)
 
     print()
     print("=" * 78)
     print("边界算例：输入层负例 + 结论层边界，每一条都必须命中预期")
+    print(f"期望值来源：{'B 路 _expect' if 'thermal' in active else 'A 路 _expect_a'}")
     print("=" * 78)
     dirs = [here / "cases_negative", here / "cases_edge"]
     files: List[Path] = []
@@ -922,14 +1155,16 @@ def cmd_check(args: List[str]) -> int:
         print(f"未找到算例目录：{dirs}")
         return 1
 
+    key = "_expect" if "thermal" in active else "_expect_a"
     hdr = f"{'文件':<34}{'期望':>17}{'实际':>16}{'结果':>7}"
     print(hdr)
     print("-" * len(hdr))
+    missing_expect = 0
     for f in files:
         raw = json.loads(f.read_text(encoding="utf-8-sig"))
-        expect = raw.get("_expect") or {}
+        expect = raw.get(key) or {}
         case = load_case(f)
-        o = audit(case)
+        o = audit(case, plugins=plugins)
         status = o["audit"]["overall_status"]
         reasons = " ".join(o["audit"].get("reasons") or [])
         issues = " ".join(i["code"] for i in (o.get("validation") or {}).get("issues", []))
@@ -937,33 +1172,82 @@ def cmd_check(args: List[str]) -> int:
 
         want_status = expect.get("status")
         want_reason = expect.get("reason_contains")
-        hit = (status == want_status)
-        if want_reason:
-            hit = hit and (want_reason in blob)
+        if want_status is None:
+            missing_expect += 1
+            hit = False
+            print(f"{f.stem[:32]:<34}{'(-不在 ' + key + '-)':>17}{status:>16}{'MISS':>7}")
+        else:
+            hit = (status == want_status)
+            if want_reason:
+                hit = hit and (want_reason in blob)
+            print(f"{f.stem[:32]:<34}{want_status:>17}{status:>16}"
+                  f"{'PASS' if hit else 'FAIL':>7}")
         ok_all = ok_all and hit
-        print(f"{f.stem[:32]:<34}{want_status or '-':>17}{status:>16}"
-              f"{'PASS' if hit else 'FAIL':>7}")
+
+    if missing_expect:
+        print(f"\n有 {missing_expect} 个算例缺少 {key} 字段：无法判定")
+        ok_all = False
 
     print()
     print(f"自检总体：{'全部通过' if ok_all else '有失败项（存在漏报）'}")
     return 0 if ok_all else 1
 
 
+# --------------------------------------------------------------------------
+# 入口
+# --------------------------------------------------------------------------
+
+
+def _split_plugins(argv: List[str]) -> Tuple[List[str], Optional[str]]:
+    """剥出 --plugins / --plugins=x，其余顺序不变。"""
+    out: List[str] = []
+    plugins: Optional[str] = None
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a == "--plugins":
+            if i + 1 >= len(argv):
+                raise PluginError("--plugins 需要一个参数（如 thermal,scaling 或 none）")
+            plugins = argv[i + 1]
+            i += 2
+            continue
+        if a.startswith("--plugins="):
+            plugins = a.split("=", 1)[1]
+            i += 1
+            continue
+        out.append(a)
+        i += 1
+    return out, plugins
+
+
 def main(argv: List[str]) -> int:
     if not argv:
         print(__doc__)
         return 2
+
+    try:
+        argv, plugins = _split_plugins(argv)
+    except PluginError as e:
+        print(f"参数错误：{e}")
+        return 2
+
+    if not argv:
+        print(__doc__)
+        return 2
+
     cmd, rest = argv[0], argv[1:]
     if cmd == "audit":
-        return cmd_audit(rest or ["cases"])
+        return cmd_audit(rest or ["cases"], plugins=plugins)
     if cmd == "validate":
         return cmd_validate(rest)
     if cmd == "palette":
         return cmd_palette(rest)
+    if cmd == "plugins":
+        return cmd_plugins()
     if cmd == "selftest":
-        return cmd_selftest()
+        return cmd_selftest(plugins)
     if cmd == "check":
-        return cmd_check(rest)
+        return cmd_check(rest, plugins)
     print(f"未知命令：{cmd}")
     print(__doc__)
     return 2

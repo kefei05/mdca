@@ -31,7 +31,8 @@ def run(rsa, delta_cal):
     p = dict(BASE, Rsa=rsa)
     raw = build_case(f"R{int(rsa*100):04d}_d{int(delta_cal)}", p, source_type="optimizer",
                      delta_cal=delta_cal)
-    o = audit(parse_case_doc(raw, "t14"))
+    # v0.2 的实验结论依赖温度；第 2 步把 B 路改成默认关后，脚本必须自己声明。
+    o = audit(parse_case_doc(raw, "t14"), plugins=("thermal", "scaling"))
     g = G.grade(o, cfg)
     tw = (o.get("temperature") or {}).get("winding_corrected_C")
     st = o.get("stress_tests") or {}

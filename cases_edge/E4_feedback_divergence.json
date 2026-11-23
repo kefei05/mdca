@@ -145,5 +145,9 @@
   "_expect": {
     "status": "COUPLING_FAILED",
     "reason_contains": "thermal_feedback_divergence"
+  },
+  "_expect_a": {
+    "status": "AUDIT_REVIEW",
+    "reason_contains": "D1_out_of_domain"
   }
 }
