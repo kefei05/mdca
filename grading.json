@@ -49,6 +49,7 @@
     "hard_violation": [
       "P0_contract",
       "P1_source_hash",
+      "P2_temp_basis",
       "V1_missing",
       "V1_unit",
       "V3_palette_mix",
@@ -79,7 +80,11 @@
     "data_issue": [
       "V2_unverified",
       "V2_optimistic",
-      "S0_scaling_input"
+      "S0_scaling_input",
+      "V1_plugin_missing",
+      "B0_plugin_failed",
+      "B0_plugin_name",
+      "B0_plugin_bad_param"
     ]
   },
 
