@@ -31,7 +31,7 @@ try:
 except Exception:
     pass
 
-# 要校验的文档
+# 要校验的仓库内公开文档
 DOCS = ["README.md", "MDCA_项目说明.md", "CHANGES_第3_4步_反推器与回测.md"]
 
 # 参与行数校验的 .py（其余脚本不写行数）

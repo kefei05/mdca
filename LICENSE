@@ -1,16 +1,31 @@
-MIT License
+MIT License with Non-Commercial Clause
+=====================================
 
 Copyright (c) 2026 kefei
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+to use, copy, modify, merge, publish, distribute, and to permit persons to
+whom the Software is furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+2. NON-COMMERCIAL USE ONLY. The Software may not be used, in whole or in part,
+   for commercial purposes. "Commercial purposes" means any use intended for
+   or directed toward commercial advantage or monetary compensation, including
+   but not limited to:
+
+     (a) incorporating the Software into a product or service that is sold,
+         licensed, or otherwise monetized;
+     (b) using the Software to deliver paid engineering or consulting services;
+     (c) internal use by a for-profit entity in developing its own products.
+
+   Educational and academic use, personal projects, and non-commercial
+   research are permitted and encouraged.
+
+   For commercial licensing, contact the copyright holder.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -19,6 +34,15 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+NOTE ON THE NAME
+
+This is NOT the standard MIT License. It is the MIT text with an added
+non-commercial restriction, which the Open Source Initiative does not accept
+as an open-source license. The project is source-available, not open-source.
+Please do not describe it as "MIT" without that qualifier.
 
 ---
 
