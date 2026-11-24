@@ -1,4 +1,4 @@
-# MDCA 一键自测
+﻿# MDCA 一键自测
 #   A 路（默认，不启用任何插件）：口径 / 契约 / 溯源 / 分级 / 插件开关
 #   B 路（--plugins thermal,scaling）：温度计算 / 缩放律 / 随机回代
 # 第 2 步之后 B 路默认关闭，所以 B 路的每一行都必须显式带 --plugins。
@@ -23,7 +23,7 @@ Step "grading 17"      "python mdca_grading.py selftest"
 Step "palette 5"       "python mdca_palette.py --selftest"
 Step "mdca A 路 7"     "python mdca.py selftest"
 Step "check A 路 17"   "python mdca.py check 300"
-Step "inverter 12"     "python mdca_inverter.py selftest"
+Step "inverter 15"     "python mdca_inverter.py selftest"
 Step "backtest 5 集"   "python road_a_backtest.py"
 Step "review 10"       "python mdca_review.py selftest"
 Step "doc 一致"        "python doc_consistency.py"

@@ -200,6 +200,12 @@ def review_one(label: str, case: Any, cfg: Dict[str, Any],
     if getattr(case, "operating_points", None) and "I3" not in " ".join(
             (o.get("consistency") or {}).get("checks_run") or []):
         warns.append("有 operating_points 但多工况判据未运行")
+    cov = (o.get("consistency") or {}).get("coverage") or {}
+    if cls == "clean" and cov.get("audited_count", 0) == 0:
+        warns.append(f"AUDIT_PASS 但自洽性判据 0/{cov.get('total', '?')} 条被触发"
+                     f"（字段不足），该 PASS 只覆盖口径层")
+    elif cls == "clean" and cov.get("skipped_count", 0) > 0:
+        warns.append(f"AUDIT_PASS 但仍有 {cov['skipped_count']} 条判据因缺字段未审")
 
     # 一句可读的主要矛盾
     why = "—"

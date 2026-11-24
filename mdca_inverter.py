@@ -1176,6 +1176,84 @@ def audit_topology_reduction(spec: Mapping[str, Any]) -> Tuple[Dict[str, Any], L
 
 
 # ==========================================================================
+# 审计覆盖率：每次 PASS 都要说清「审了哪些、哪些因缺字段没审」
+# ==========================================================================
+#
+# 为什么要有它：只给 Pcu/Pfe/Ta 三个数的候选，所有判据都跳过，结果是 AUDIT_PASS。
+# 读者会把它读成「很干净」，实际是「没东西可审」。覆盖率把这两件事分开：
+#   AUDIT_PASS + 覆盖率 1/11  = 干净，但基本没审
+#   AUDIT_PASS + 覆盖率 11/11 = 干净，审全了
+#
+# 判据 → 所需字段。表里没跑到的判据，按「缺哪几个字段」归入未审。
+CHECK_REQUIREMENTS: Dict[str, Tuple[str, ...]] = {
+    "C1a_flux_linkage": ("lambda_pm", "kw", "Phi_pole"),
+    "C1b_kt_flux": ("Kt", "lambda_pm", "p"),
+    "C1c_back_emf": ("E_line_pk", "lambda_pm", "n_rpm", "p"),
+    "C1d_bus_voltage_margin": ("E_line_pk", "U_bus"),
+    "C2a_copper_loss_ohm": ("Pcu", "R_phase", "I_rms"),
+    "C2b_turn_scaling_R": ("R_phase", "R_ref", "N_ref"),
+    "C2c_slot_fill_factor": ("K_f", "A_cu_net"),
+    "C3a_mech_power": ("P_out", "T_out", "n_rpm"),
+    "C3b_efficiency_closure": ("eta", "P_out"),
+    "I1_thermal_kcl": ("Rws", "Rsa", "Tw"),
+    "I2_implied_resistance": ("Tw", "Pcu", "Pfe", "Ta"),
+}
+
+CHECK_DESC: Dict[str, str] = {
+    "C1a_flux_linkage": "磁链 λpm = N·kw·Φ 闭合",
+    "C1b_kt_flux": "转矩常数 Kt = 1.5·p·λpm",
+    "C1c_back_emf": "线反电势 = √3·ωe·λpm",
+    "C1d_bus_voltage_margin": "反电势占母线余量",
+    "C2a_copper_loss_ohm": "铜损 = 3·I²·R",
+    "C2b_turn_scaling_R": "改匝数时 R ∝ N²",
+    "C2c_slot_fill_factor": "槽满率三口径",
+    "C3a_mech_power": "机械功率 = T·ω",
+    "C3b_efficiency_closure": "效率分母闭合",
+    "I1_thermal_kcl": "稳态热流守恒（KCL）",
+    "I2_implied_resistance": "隐含热阻反推",
+}
+
+
+def _coverage_view(params: Mapping[str, Any], reported: Mapping[str, Any]) -> Dict[str, Any]:
+    """把 reported 里的 Tw/Tr/Ts 并进视图——它们常不在 params 里，但判据要用。"""
+    view: Dict[str, Any] = dict(params)
+    for k in ("Tw", "Tr", "Ts"):
+        if _extract_val(view, k) is None and reported.get(k) is not None:
+            view[k] = reported[k]
+    return view
+
+
+def build_coverage(params: Mapping[str, Any], reported: Mapping[str, Any],
+                   checks_run: Sequence[str]) -> Dict[str, Any]:
+    """算出「审了哪些、哪些因为缺字段没审」。"""
+    view = _coverage_view(params, reported)
+    ran = [c for c in checks_run if c in CHECK_REQUIREMENTS]
+    ran_set = set(ran)
+    skipped: List[Dict[str, Any]] = []
+    for name, needs in CHECK_REQUIREMENTS.items():
+        if name in ran_set:
+            continue
+        miss = [f for f in needs if _extract_val(view, f) is None]
+        if miss:
+            skipped.append({"check": name, "desc": CHECK_DESC[name], "missing": miss})
+
+    total = len(CHECK_REQUIREMENTS)
+    audited = len(ran)
+    if not skipped:
+        note = f"审了 {audited}/{total} 条判据，无因缺字段未审项"
+    else:
+        note = f"审了 {audited}/{total} 条判据，{len(skipped)} 条因缺字段未审"
+    return {
+        "audited": sorted(ran),
+        "skipped": skipped,
+        "audited_count": audited,
+        "skipped_count": len(skipped),
+        "total": total,
+        "note": note,
+    }
+
+
+# ==========================================================================
 # 统一入口：供 mdca.py 的 audit(case) 调用
 # ==========================================================================
 
@@ -1226,9 +1304,12 @@ def audit_case_consistency(case: Any, raw_doc: Optional[Mapping[str, Any]] = Non
         all_findings.extend(topo_f)
         checks_run.append("I4_topology_reduction")
 
+    coverage = build_coverage(case.params, reported, checks_run)
+
     return {
         "ran": bool(checks_run),
         "checks_run": checks_run,
+        "coverage": coverage,
         "electromagnetic": em_rep.get("details") or {},
         "thermal_single": {k: v for k, v in th_rep.items() if k != "checks_run"},
         "multipoint": mp_rep,
@@ -1384,6 +1465,32 @@ def selftest() -> bool:
     check("⑫ I4 Energies 2021 串并联拓扑合成：Rsa=0.1162 K/W、Rws 占比 37.6%",
           not f12 and abs(rep12.get("Rws_share_in_rotating", 0) - 0.376) < 0.001,
           str(rep12))
+
+    # 13) 覆盖率：只给最小集时，必须明说「一条判据都没触发」
+    #     否则 AUDIT_PASS 会被读成「很干净」，实际是「没东西可审」。
+    bare = {"Pcu": 13.6, "Pfe": 5.33, "Ta": 40.0}
+    cov_bare = build_coverage(bare, {}, [])
+    check("⑬ 覆盖率：最小集（Pcu/Pfe/Ta）→ 0 条触发、全部记为缺字段",
+          cov_bare["audited_count"] == 0
+          and cov_bare["skipped_count"] == cov_bare["total"]
+          and "0/" in cov_bare["note"],
+          cov_bare["note"])
+
+    # 14) 覆盖率：补齐 I_rms / R_phase 后，C2a 必须从「未审」变为「已审」
+    rich = dict(bare, I_rms=15.9, R_phase=0.018)
+    cov_rich = build_coverage(rich, {}, [])
+    check("⑭ 覆盖率：补 I_rms/R_phase → 仍有 0 条触发（C2a 需真跑过才算）",
+          cov_rich["audited_count"] == 0,
+          f"skipped={cov_rich['skipped_count']}")
+
+    cov_ran = build_coverage(rich, {}, ["C2a_copper_loss_ohm"])
+    skipped_names = {s["check"] for s in cov_ran["skipped"]}
+    check("⑮ 覆盖率：跑过 C2a 后它从「未审」列表消失，且缺字段标注准确",
+          cov_ran["audited_count"] == 1
+          and "C2a_copper_loss_ohm" not in skipped_names
+          and any("C1a_flux_linkage" == s["check"] and "lambda_pm" in s["missing"]
+                  for s in cov_ran["skipped"]),
+          cov_ran["note"])
 
     print(f"自测结果：{'全部通过' if ok else '有失败项'}")
     return ok

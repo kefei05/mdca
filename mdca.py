@@ -773,11 +773,17 @@ def audit(case: Case, plugins: Any = None) -> Dict[str, Any]:
     }
     result["temperature"] = None
     v = _audit_only_status(issues)
+    cov = consistency.get("coverage") or {}
+    note = ("AUDIT_PASS 表示口径/契约/溯源及已提供的电磁-热自洽性判据过审，"
+            "不表示数据可信，也不表示任何电机的真实合格性。")
+    if v["status"] == AUDIT_PASS and cov.get("audited_count", 0) == 0:
+        note += (f" ⚠ 本次自洽性判据 0/{cov.get('total', '?')} 条被触发（字段不足），"
+                 f"该 PASS 只覆盖口径层，不代表数据自洽性已被检验。")
     result["audit"] = {
         "overall_status": v["status"],
         "reasons": v["reasons"],
-        "note": ("AUDIT_PASS 表示口径/契约/溯源及已提供的电磁-热自洽性判据过审，"
-                 "不表示数据可信，也不表示任何电机的真实合格性。"),
+        "note": note,
+        "coverage": cov,
     }
     return result
 
@@ -806,8 +812,13 @@ def print_report(o: Dict[str, Any]) -> None:
     print(f"  校验：{'BLOCKED' if v.get('blocked') else 'OK'}"
           f"（block {v.get('block_count', 0)} / review {v.get('review_count', 0)}）")
     cons = o.get("consistency") or {}
-    if cons.get("ran"):
-        print(f"  自洽性判据：{', '.join(cons.get('checks_run') or [])}")
+    cov = cons.get("coverage") or {}
+    if cov:
+        print(f"  审计覆盖率：{cov.get('note')}")
+        if cov.get("skipped_count"):
+            names = "、".join(s["check"] for s in (cov.get("skipped") or [])[:4])
+            more = "…" if cov["skipped_count"] > 4 else ""
+            print(f"    未审：{names}{more}")
     for i in v.get("issues", []):
         if i["severity"] in ("BLOCK", "REVIEW"):
             print(f"    [{i['severity']}] {i['code']}: {i['message']}")
