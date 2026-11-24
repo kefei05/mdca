@@ -8,8 +8,11 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # ubuntu-latest 已升到 26.04，那上面 actions/setup-python 没有 Python 3.9 的
+    # 预编译包。项目 pyproject 声明 requires-python >= 3.9，所以固定到 22.04 才能真的测到。
+    runs-on: ubuntu-22.04
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.9", "3.12"]
 
@@ -20,7 +23,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: 安装（可选，验证 pyproject 可构建）
+      - name: 安装（验证 pyproject 可构建）
         run: pip install -e .
 
       - name: 全量测试
