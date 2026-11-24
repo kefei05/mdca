@@ -74,6 +74,10 @@ except Exception:
 
 ALPHA_CU_DEFAULT = 0.00393          # 铜电阻温度系数 1/K (@20℃)
 TREF_DEFAULT = 20.0                 # 默认参考温度 ℃
+# KCL 残差的判定门槛（K）。真实台架的申报温度常带 ±1~2 K 读数误差，
+# 所以门槛 = 这个基础值 + reported 里申报的 Tw_unc / Tr_unc。
+# 指纹匹配（精确还原某种错法）不走这个放宽，始终保持严格。
+KCL_TOL_K = 0.5
 
 # Boglietti 2008 Eq.(2): R0 = 0.167 / A_housing (m²), 等效 h0 = 5.95 W/(m²·K)
 BOGLIETTI_R0_COEFF = 0.167          # K·m²/W
@@ -592,10 +596,17 @@ def audit_thermal_kcl_and_inversion(
         out["checks_run"].append("I1_thermal_kcl")
         req = rws + rsa
         g_true = alpha * req * pcu0
+        # 门槛随申报的读数不确定度放宽：真实台架 ±2 K 的电偶误差不该被当成建模错误。
+        tw_unc = _declared_uncertainty(rep, "Tw_unc")
+        tr_unc = _declared_uncertainty(rep, "Tr_unc")
+        tol_tw = KCL_TOL_K + tw_unc
+        tol_tr = KCL_TOL_K + tr_unc
         i1_detail: Dict[str, Any] = {
             "Tw_reported_C": round(float(tw_rep), 3),
             "Tr_reported_C": round(float(tr_rep), 3) if tr_rep is not None else None,
             "g_true": round(g_true, 5),
+            "tolerance_K": {"Tw": round(tol_tw, 3), "Tr": round(tol_tr, 3)},
+            "declared_uncertainty_K": {"Tw": tw_unc, "Tr": tr_unc},
         }
 
         if g_true >= 1.0:
@@ -658,7 +669,7 @@ def audit_thermal_kcl_and_inversion(
 
             matched_tw_fp: Optional[str] = None
             matched_tw_desc: str = ""
-            if abs(err_tw) > 0.5:
+            if abs(err_tw) > tol_tw:
                 best_fp, best_diff = None, 999.0
                 for fp_name, (val, desc) in candidates_tw.items():
                     if math.isnan(val):
@@ -679,13 +690,13 @@ def audit_thermal_kcl_and_inversion(
                 i1_detail["Tr_residual_K"] = round(err_tr, 3)
                 # 指纹：Tr = Tw_rep + Rrs * Peddy（把转子热阻挂在绕组 Tw 上而非定子 Ts 上）
                 tr_on_winding = float(tw_rep) + rrs * peddy
-                if abs(float(tr_rep) - tr_on_winding) <= 0.15 and abs(float(tw_rep) - ts_true) > 0.5:
+                if abs(float(tr_rep) - tr_on_winding) <= 0.15 and abs(float(tw_rep) - ts_true) > tol_tw:
                     matched_tr_fp = "topo_rotor_on_winding"
                     i1_detail["Tr_fingerprint"] = matched_tr_fp
                     i1_detail["Tr_fingerprint_value_C"] = round(tr_on_winding, 3)
                     i1_detail["Tr_fingerprint_diff_K"] = round(abs(float(tr_rep) - tr_on_winding), 4)
 
-            if abs(err_tw) > 0.5 or (tr_rep is not None and tr_true is not None and abs(float(tr_rep) - tr_true) > 0.5):
+            if abs(err_tw) > tol_tw or (tr_rep is not None and tr_true is not None and abs(float(tr_rep) - tr_true) > tol_tr):
                 msg_parts = [
                     f"申报温度与给定损耗/热阻不满足稳态热流守恒（KCL）："
                     f"申报 Tw={float(tw_rep):.2f}℃ vs 收敛真解 {tw_true:.2f}℃（偏差 {err_tw:+.2f} K）"
@@ -1224,6 +1235,19 @@ def _coverage_view(params: Mapping[str, Any], reported: Mapping[str, Any]) -> Di
     return view
 
 
+def _declared_uncertainty(reported: Mapping[str, Any], key: str) -> float:
+    """读申报的读数不确定度（K）。缺失或非法一律按 0 处理，不放宽门槛。"""
+    raw = reported.get(key)
+    if raw is None:
+        raw = reported.get(key.replace("_unc", "_uncertainty"))
+    if raw is None:
+        return 0.0
+    try:
+        return max(0.0, float(raw))
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def build_coverage(params: Mapping[str, Any], reported: Mapping[str, Any],
                    checks_run: Sequence[str]) -> Dict[str, Any]:
     """算出「审了哪些、哪些因为缺字段没审」。"""
@@ -1492,6 +1516,29 @@ def selftest() -> bool:
           and any("C1a_flux_linkage" == s["check"] and "lambda_pm" in s["missing"]
                   for s in cov_ran["skipped"]),
           cov_ran["note"])
+
+    # 16~18) KCL 门槛随申报的读数不确定度放宽（真实台架 ±2 K 电偶误差不该被当成建模错误），
+    #        但门槛以外的偏差必须照样拦。
+    _p = {"Pcu": 13.6, "Pfe": 5.33, "Ta": 40.0, "Rws": 1.16, "Rsa": 2.03}
+    _d0 = audit_thermal_kcl_and_inversion(_p, reported={"Tw": 100.0})[0].get("I1_kcl") or {}
+    tw_true = float(_d0.get("Tw_kcl_true_C"))
+
+    _c16, _f16 = audit_thermal_kcl_and_inversion(_p, reported={"Tw": tw_true + 2.0})
+    check("⑯ KCL 门槛：残差 2.0K 且未申报不确定度 → BLOCK",
+          any(f.code == "I1_kcl_violation" for f in _f16),
+          f"findings={[f.code for f in _f16]}")
+
+    _c17, _f17 = audit_thermal_kcl_and_inversion(
+        _p, reported={"Tw": tw_true + 2.0, "Tw_unc": 2.5})
+    check("⑰ KCL 门槛：同残差但申报 Tw_unc=2.5K → 不 BLOCK（门槛 3.0K）",
+          not any(f.code == "I1_kcl_violation" for f in _f17),
+          f"tolerance={(_c17.get('I1_kcl') or {}).get('tolerance_K')}")
+
+    _c18, _f18 = audit_thermal_kcl_and_inversion(
+        _p, reported={"Tw": tw_true + 3.5, "Tw_unc": 2.5})
+    check("⑱ KCL 门槛：放宽后残差 3.5K 超门槛 3.0K → 仍 BLOCK",
+          any(f.code == "I1_kcl_violation" for f in _f18),
+          f"residual={(_c18.get('I1_kcl') or {}).get('Tw_residual_K')}")
 
     print(f"自测结果：{'全部通过' if ok else '有失败项'}")
     return ok

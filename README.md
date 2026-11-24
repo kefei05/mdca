@@ -139,6 +139,7 @@ candidate.json / .jsonl
 
   // ---- A 路反推器专用的三个顶层扩展（都可缺省）----
   "reported": { "Tw": 102.66, "Tr": 120.95 },   // 对方申报的节点温度
+                                              // 真实台架可加 "Tw_unc": 2.0（读数不确定度，K）
   "operating_points": [                          // 多工况点
     { "Ta": 45, "Ts": 96.82, "Tw": 160.43, "Pcu": 572.17, "Ptot": 705.42 }
   ],
@@ -258,6 +259,8 @@ near_limit_band_K = 5 K ≈ 2× 热电偶不确定度（±2K）+ 1K
 | 判据 | 检验什么 |
 |---|---|
 | `I1` | 给定 `(R, P)` 与申报 `Tw/Tr`，检验稳态热流守恒（KCL）。能定位 6 种指纹：`kcl_missing_pcu_in_rsa` / `topo_rotor_on_winding` / `unconverged_cold` / `unconverged_1step` / `kcl_pfe_through_rws` / `kcl_missing_peddy` |
+
+**KCL 门槛随申报不确定度放宽**：基础容差 0.5 K。若 `reported` 里给了 `Tw_unc` / `Tr_unc`（K），门槛变成 `0.5 + unc`——真实台架 ±2 K 的热电偶误差不该被当成建模错误。但**指纹匹配不走这个放宽**（精确还原某种错法必须严格），且超出门槛的偏差照样 BLOCK。自测 ⑯~⑱ 守着这三条边界。
 | `I2` | 反推隐含热阻：有 `Ts` 时解耦求 `Rws/Rsa/Rrs`，没有时给**严格代数上下界**；检验 `R>0`、`g<1`；用 Boglietti 2008 `R₀ = 0.167/A` 反算隐含换热系数倍数 |
 | `I3` | 多工况有界误差反推，求可行区间交集 `∩ S_k`——**空集即严格证伪「热阻是常数」**；Spearman 判单调漂移，**检出漂移即升 REVIEW**（认可物理成因，但不许当常参数外推）；检出「计算通过、实测超限」的漏报点 |
 | `I4` | 串并联支路合成、Energies 2021 Eq.(4) 端部铜损占比 |
@@ -489,7 +492,7 @@ U  来自用户工程文件，待提供原件
 ```text
 A 路核心
   mdca.py              1247 行  编排（校验→拦截→插件→判定→分级→账本）
-  mdca_inverter.py      1508 行  反推器 + 电磁-热自洽性判据集
+  mdca_inverter.py      1555 行  反推器 + 电磁-热自洽性判据集
   mdca_palette.py       1020 行  口径层（11 字段 / 11 规则 / Markdown 扫描）
   mdca_schema.py        338 行  契约校验器
   mdca_provenance.py    244 行  溯源层
