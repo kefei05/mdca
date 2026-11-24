@@ -6,9 +6,13 @@ $ErrorActionPreference = "Continue"
 $fail = 0
 $results = @()
 
+# 跨平台：Windows PowerShell 里这个进程叫 powershell，PowerShell 7 / Linux 上叫 pwsh。
+# 用当前进程自己的可执行文件，避免写死其中一个。
+$psExe = (Get-Process -Id $PID).Path
+
 function Step($name, $cmd) {
     Write-Host ("--- " + $name) -ForegroundColor Cyan
-    & powershell -NoProfile -Command $cmd
+    & $psExe -NoProfile -Command $cmd
     if ($LASTEXITCODE -ne 0) { $script:fail++; $results += "$name : FAIL" }
     else { $results += "$name : OK" }
 }
