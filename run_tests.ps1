@@ -18,7 +18,7 @@ Write-Host "########## A 路（默认主线，不产生温度）##########" -For
 Step "plugins 15"      "python mdca_plugins.py selftest"
 Step "provenance 9"    "python mdca_provenance.py"
 Step "scaling 5"       "python mdca_scaling.py"
-Step "schema 14"       "python mdca_schema.py selftest"
+Step "schema 15"       "python mdca_schema.py selftest"
 Step "grading 17"      "python mdca_grading.py selftest"
 Step "palette 5"       "python mdca_palette.py --selftest"
 Step "mdca A 路 7"     "python mdca.py selftest"
@@ -26,6 +26,7 @@ Step "check A 路 17"   "python mdca.py check 300"
 Step "inverter 12"     "python mdca_inverter.py selftest"
 Step "backtest 5 集"   "python road_a_backtest.py"
 Step "review 10"       "python mdca_review.py selftest"
+Step "doc 一致"        "python doc_consistency.py"
 
 Write-Host ""
 Write-Host "########## B 路（显式启用插件）##########" -ForegroundColor Magenta

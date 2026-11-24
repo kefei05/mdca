@@ -284,7 +284,7 @@ python mdca.py audit benchmarks/ --plugins thermal,scaling
 python baseline_b_road.py --diff                  # 应输出「差异 0 个」
 
 # 全量
-powershell -File run_tests.ps1                    # 16 项
+powershell -File run_tests.ps1                    # 18 项
 ```
 
 A 路跑四个主算例的结论（全部 `AUDIT_PASS` 或 `AUDIT_BLOCKED`，没有温度）：

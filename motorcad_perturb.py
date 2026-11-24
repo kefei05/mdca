@@ -18,7 +18,7 @@ sys.path.insert(0, r"<MOTORCAD_ROOT>\Python\Python\Lib\site-packages")
 import ansys.motorcad.core as pymotorcad
 
 MOT = r"<MOTORCAD_ROOT>\Tutorials\BPM_Modelling\EV_5_Thermal.mot"
-OUT = Path(r"E:\deepseek\mdca\out")
+OUT = Path(__file__).resolve().parent / "out"
 OUT.mkdir(parents=True, exist_ok=True)
 LOG = OUT / "mcad_perturb.log"
 _f = open(LOG, "w", encoding="utf-8")

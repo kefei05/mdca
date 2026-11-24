@@ -5,7 +5,7 @@ import sys
 import urllib.request
 from pathlib import Path
 
-OUT = Path(r"E:\deepseek\mdca\refs")
+OUT = Path(__file__).resolve().parent / "refs"
 OUT.mkdir(exist_ok=True)
 
 TARGETS = [

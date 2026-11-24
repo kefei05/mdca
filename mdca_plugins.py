@@ -180,6 +180,32 @@ def from_env() -> Optional[List[str]]:
     return parse_request(raw)
 
 
+def split_plugin_args(argv: Sequence[str]) -> Tuple[List[str], Optional[str]]:
+    """从命令行参数里剥出 --plugins / --plugins=x，其余顺序不变。
+
+    mdca.py 与 mdca_review.py 原先各写一份，逻辑一旦不同步，同一个
+    `--plugins` 在两个入口的行为就会不一致。统一放这里。
+    """
+    out: List[str] = []
+    plugins: Optional[str] = None
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a == "--plugins":
+            if i + 1 >= len(argv):
+                raise PluginError("--plugins 需要一个参数（如 thermal,scaling 或 none）")
+            plugins = argv[i + 1]
+            i += 2
+            continue
+        if a.startswith("--plugins="):
+            plugins = a.split("=", 1)[1]
+            i += 1
+            continue
+        out.append(a)
+        i += 1
+    return out, plugins
+
+
 def resolve(explicit: Any = None, case: Any = None) -> Tuple[List[str], str]:
     """按 4 级优先级定出本次审计启用的插件。
 

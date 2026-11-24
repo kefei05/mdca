@@ -8,7 +8,7 @@ sys.path.insert(0, r"<MOTORCAD_ROOT>\Python\Python\Lib\site-packages")
 import ansys.motorcad.core as pymotorcad  # noqa: E402
 
 MOT = r"<MOTORCAD_ROOT>\Tutorials\BPM_Modelling\EV_5_Thermal.mot"
-OUT = Path(r"E:\deepseek\mdca\out")
+OUT = Path(__file__).resolve().parent / "out"
 _f = open(OUT / "task2_diag.log", "w", encoding="utf-8")
 
 

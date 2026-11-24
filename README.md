@@ -76,7 +76,7 @@ python mdca_review.py cases_ai/                        # 控制台 + out/review.
 python mdca_review.py cases_ai/ --md out/review_ai.md  # 额外写 Markdown 报告
 python mdca_review.py cases/ cases_negative/ cases_ai/  # 一次审多批
 
-powershell -File run_tests.ps1        # 全部 17 项
+powershell -File run_tests.ps1        # 全部 18 项
 ```
 
 ---
@@ -392,7 +392,7 @@ Rrs ∝ g / (λ_air · A_gap)          A_gap = π · D_gap · L
 ## 九、测试
 
 ```text
-run_tests.ps1     16 项
+run_tests.ps1     18 项
   A 路  plugins 15 / provenance 9 / scaling 5 / schema 15 / grading 17 /
         palette 5 / mdca A 路 7 / check A 路 17 / inverter 12 / backtest 5 集
   B 路  thermal 13 / thermal 插件 8 / scaling 插件 4 / mdca B 路 10 /
@@ -468,28 +468,28 @@ U  来自用户工程文件，待提供原件
 
 ```text
 A 路核心
-  mdca.py              1200 行  编排（校验→拦截→插件→判定→分级→账本）
-  mdca_inverter.py      900 行  反推器 + 电磁-热自洽性判据集
-  mdca_palette.py       890 行  口径层（11 字段 / 11 规则 / Markdown 扫描）
-  mdca_schema.py        279 行  契约校验器
-  mdca_provenance.py    191 行  溯源层
-  mdca_grading.py       232 行  四档分级（配置驱动）
-  mdca_plugins.py       268 行  插件注册表与四级开关
+  mdca.py              1236 行  编排（校验→拦截→插件→判定→分级→账本）
+  mdca_inverter.py      1400 行  反推器 + 电磁-热自洽性判据集
+  mdca_palette.py       1020 行  口径层（11 字段 / 11 规则 / Markdown 扫描）
+  mdca_schema.py        338 行  契约校验器
+  mdca_provenance.py    244 行  溯源层
+  mdca_grading.py       285 行  四档分级（配置驱动）
+  mdca_plugins.py       370 行  插件注册表与四级开关
 
 B 路插件（默认关）
-  mdca_plugin_thermal.py 280 行  温度计算适配器
-  mdca_plugin_scaling.py 131 行  几何缩放适配器
-  mdca_thermal.py        575 行  温度计算本体（A 路不 import）
-  mdca_scaling.py        173 行  缩放律本体
-  mdca_checks.py         268 行  随机回代（仅 B 路自检）
+  mdca_plugin_thermal.py 346 行  温度计算适配器
+  mdca_plugin_scaling.py 169 行  几何缩放适配器
+  mdca_thermal.py        689 行  温度计算本体（A 路不 import）
+  mdca_scaling.py        215 行  缩放律本体
+  mdca_checks.py         318 行  随机回代（仅 B 路自检）
 
 工具
-  road_a_backtest.py     560 行  五大真实数据集回测（70 条断言）
-  mdca_review.py         560 行  批量审查外部候选（五类分类 + 指纹聚合 + 盲区提示）
-  baseline_b_road.py     140 行  B 路回归基线（--diff 必须差异 0）
-  mdca_batch.py          423 行  生成候选 + 植入问题 + 度量（阶段 D 实验复现）
-  b5_rule_matrix.py      118 行  规则适用性矩阵
-  run_tests.ps1                 17 项一键自测
+  road_a_backtest.py     619 行  五大真实数据集回测（70 条断言）
+  mdca_review.py         630 行  批量审查外部候选（五类分类 + 指纹聚合 + 盲区提示）
+  baseline_b_road.py     119 行  B 路回归基线（--diff 必须差异 0）
+  mdca_batch.py          495 行  生成候选 + 植入问题 + 度量（阶段 D 实验复现）
+  b5_rule_matrix.py      119 行  规则适用性矩阵
+  run_tests.ps1                 18 项一键自测
 
 数据
   cases/                        4 条主算例

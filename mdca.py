@@ -59,6 +59,7 @@ from mdca_plugins import (  # noqa: E402
     all_names as plugin_names,
     describe as describe_plugins,
     from_case as plugins_from_case,
+    split_plugin_args,
     resolve as resolve_plugins,
     run as run_plugin,
 )
@@ -1198,35 +1199,13 @@ def cmd_check(args: List[str], plugins: Any = None) -> int:
 # --------------------------------------------------------------------------
 
 
-def _split_plugins(argv: List[str]) -> Tuple[List[str], Optional[str]]:
-    """剥出 --plugins / --plugins=x，其余顺序不变。"""
-    out: List[str] = []
-    plugins: Optional[str] = None
-    i = 0
-    while i < len(argv):
-        a = argv[i]
-        if a == "--plugins":
-            if i + 1 >= len(argv):
-                raise PluginError("--plugins 需要一个参数（如 thermal,scaling 或 none）")
-            plugins = argv[i + 1]
-            i += 2
-            continue
-        if a.startswith("--plugins="):
-            plugins = a.split("=", 1)[1]
-            i += 1
-            continue
-        out.append(a)
-        i += 1
-    return out, plugins
-
-
 def main(argv: List[str]) -> int:
     if not argv:
         print(__doc__)
         return 2
 
     try:
-        argv, plugins = _split_plugins(argv)
+        argv, plugins = split_plugin_args(argv)
     except PluginError as e:
         print(f"参数错误：{e}")
         return 2

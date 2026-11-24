@@ -41,7 +41,7 @@ sys.path.insert(0, str(HERE))
 
 from mdca import audit, load_case, parse_case_doc  # noqa: E402
 from mdca_grading import grade, load_config  # noqa: E402
-from mdca_plugins import PluginError  # noqa: E402
+from mdca_plugins import PluginError, split_plugin_args  # noqa: E402
 from mdca_schema import read_jsonl  # noqa: E402
 
 try:
@@ -541,27 +541,6 @@ def selftest() -> bool:
 # --------------------------------------------------------------------------
 
 
-def _split_plugins(argv: List[str]) -> Tuple[List[str], Optional[str]]:
-    out: List[str] = []
-    plugins: Optional[str] = None
-    i = 0
-    while i < len(argv):
-        a = argv[i]
-        if a == "--plugins":
-            if i + 1 >= len(argv):
-                raise PluginError("--plugins 需要一个参数（如 thermal,scaling 或 none）")
-            plugins = argv[i + 1]
-            i += 2
-            continue
-        if a.startswith("--plugins="):
-            plugins = a.split("=", 1)[1]
-            i += 1
-            continue
-        out.append(a)
-        i += 1
-    return out, plugins
-
-
 def main(argv: List[str]) -> int:
     if not argv:
         print(__doc__)
@@ -592,7 +571,7 @@ def main(argv: List[str]) -> int:
         i += 1
 
     try:
-        targets, plugins = _split_plugins(targets)
+        targets, plugins = split_plugin_args(targets)
     except PluginError as e:
         print(f"参数错误：{e}")
         return 2

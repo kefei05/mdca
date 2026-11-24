@@ -18,8 +18,8 @@
 
 | 文件 | 行数 | 职责 |
 |---|---|---|
-| `mdca_inverter.py` | ~900 | A 路核心：反推器 + 电磁-热自洽性判据集 + 矛盾定位 |
-| `road_a_backtest.py` | ~560 | 五大真实数据集回测（70 条断言），产出 `out/road_a_backtest.json` |
+| `mdca_inverter.py` | 1400 | A 路核心：反推器 + 电磁-热自洽性判据集 + 矛盾定位 |
+| `road_a_backtest.py` | 619 | 五大真实数据集回测（70 条断言），产出 `out/road_a_backtest.json` |
 
 ### 2.2 改动
 
@@ -193,6 +193,6 @@ python mdca_inverter.py selftest     # 12 条
 python mdca.py audit cases_ai/AI01.json
 
 # 全量
-powershell -NoProfile -ExecutionPolicy Bypass -File run_tests.ps1   # 16 项
+powershell -NoProfile -ExecutionPolicy Bypass -File run_tests.ps1   # 18 项
 python baseline_b_road.py --diff     # B 路 34 算例零差异
 ```

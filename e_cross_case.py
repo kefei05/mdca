@@ -19,7 +19,7 @@ import csv
 import math
 from pathlib import Path
 
-OUT = Path(r"E:\deepseek\mdca\out")
+OUT = Path(__file__).resolve().parent / "out"
 rows = list(csv.DictReader(open(OUT / "mcad_perturb.csv", encoding="utf-8")))
 DATA = {int(r["node"]): (float(r["T_at_65C"]), float(r["T_at_85C"]),
                          float(r["P_at_65C"]), float(r["P_at_85C"]))

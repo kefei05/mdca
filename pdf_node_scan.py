@@ -7,7 +7,7 @@ from pathlib import Path
 import pdfplumber
 
 TUT = Path(r"<MOTORCAD_ROOT>\Tutorials")
-OUT = Path(r"E:\deepseek\mdca\refs")
+OUT = Path(__file__).resolve().parent / "refs"
 OUT.mkdir(parents=True, exist_ok=True)
 
 TARGETS = [

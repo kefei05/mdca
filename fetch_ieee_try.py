@@ -4,7 +4,7 @@ import ssl
 import urllib.request
 from pathlib import Path
 
-OUT = Path(r"E:\deepseek\mdca\refs")
+OUT = Path(__file__).resolve().parent / "refs"
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/120.0 Safari/537.36")
 
