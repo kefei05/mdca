@@ -416,6 +416,14 @@ def run_energies(verbose: bool = False) -> Group:
     g.near("EN-3 Spearman ρ = -1.0（严格单调）", ser.get("spearman_vs_x"), -1.0, 1e-6)
     g.check("EN-3 命中 I3_speed_dependent_resistance",
             "I3_speed_dependent_resistance" in codes_of(o), codes_of(o))
+    # 升格断言：认出了漂移就必须让结论离开 PASS，否则等于只记录不拦。
+    sev = [i.get("severity") for i in cons_of(o).get("issues") or []
+           if i.get("code") == "I3_speed_dependent_resistance"]
+    g.check("EN-3 该判据为 REVIEW 级（不是 INFO）",
+            sev == ["REVIEW"], sev)
+    g.check("EN-3 整体状态升为 AUDIT_REVIEW",
+            o["audit"]["overall_status"] == "AUDIT_REVIEW",
+            o["audit"]["overall_status"])
     g.record(EN3_series=ser)
 
     if verbose:

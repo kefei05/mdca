@@ -13,7 +13,7 @@
 >    例如整批数据都来自同一个错的模型：口径一致、KCL 自洽、效率闭合，
 >    审计器会判 AUDIT_PASS。它只能审内部一致性，不能审与真实的一致。
 >
-> ④ 回测的 70/70 是「断言命中」，不是「判据被证明正确」。
+> ④ 回测的 72/72 是「断言命中」，不是「判据被证明正确」。
 >    每条期望值来自独立物理恒等式或文献数字，但阈值（温度读数不确定度、
 >    功率不确定度）仍是工程约定。
 >
@@ -67,7 +67,7 @@ python mdca.py selftest --plugins thermal,scaling
 python mdca.py check 300 --plugins thermal,scaling
 
 # 回测与自测
-python road_a_backtest.py             # 五大真实数据集，70 条断言
+python road_a_backtest.py             # 五大真实数据集，72 条断言
 python mdca_inverter.py selftest      # 反推器判据（12 条）
 python baseline_b_road.py --diff      # B 路 34 算例与基线逐字段对比
 
@@ -259,7 +259,7 @@ near_limit_band_K = 5 K ≈ 2× 热电偶不确定度（±2K）+ 1K
 |---|---|
 | `I1` | 给定 `(R, P)` 与申报 `Tw/Tr`，检验稳态热流守恒（KCL）。能定位 6 种指纹：`kcl_missing_pcu_in_rsa` / `topo_rotor_on_winding` / `unconverged_cold` / `unconverged_1step` / `kcl_pfe_through_rws` / `kcl_missing_peddy` |
 | `I2` | 反推隐含热阻：有 `Ts` 时解耦求 `Rws/Rsa/Rrs`，没有时给**严格代数上下界**；检验 `R>0`、`g<1`；用 Boglietti 2008 `R₀ = 0.167/A` 反算隐含换热系数倍数 |
-| `I3` | 多工况有界误差反推，求可行区间交集 `∩ S_k`——**空集即严格证伪「热阻是常数」**；Spearman 判单调漂移；检出「计算通过、实测超限」的漏报点 |
+| `I3` | 多工况有界误差反推，求可行区间交集 `∩ S_k`——**空集即严格证伪「热阻是常数」**；Spearman 判单调漂移，**检出漂移即升 REVIEW**（认可物理成因，但不许当常参数外推）；检出「计算通过、实测超限」的漏报点 |
 | `I4` | 串并联支路合成、Energies 2021 Eq.(4) 端部铜损占比 |
 
 判据的文献依据：Boglietti 2008（`R₀=0.167/A`、接触间隙 0.01~0.10 mm、绕组等效导热拟合式）、
@@ -349,7 +349,7 @@ Rrs ∝ g / (λ_air · A_gap)          A_gap = π · D_gap · L
 
 ## 八、回测：五大真实数据集
 
-[road_a_backtest.py](road_a_backtest.py) 对**文献 / 实验 / 工程记录里的原始数字**做回测，70 条断言：
+[road_a_backtest.py](road_a_backtest.py) 对**文献 / 实验 / 工程记录里的原始数字**做回测，72 条断言：
 
 | 集 | 数据集 | 断言 | 关键结论 |
 |---|---|---|---|
@@ -425,7 +425,7 @@ run_tests.ps1     18 项
 「17 条边界算例全部命中预期」= 植入的 17 类错误都被相应规则拦下或降级。
 这 ≠ 漏报率（判 PASS 而外部复核不通过）。后者样本量为 0。
 
-「70/70 回测通过」= 断言命中，≠ 判据被证明正确。
+「72/72 回测通过」= 断言命中，≠ 判据被证明正确。
 ```
 
 ---
@@ -489,7 +489,7 @@ U  来自用户工程文件，待提供原件
 ```text
 A 路核心
   mdca.py              1247 行  编排（校验→拦截→插件→判定→分级→账本）
-  mdca_inverter.py      1507 行  反推器 + 电磁-热自洽性判据集
+  mdca_inverter.py      1508 行  反推器 + 电磁-热自洽性判据集
   mdca_palette.py       1020 行  口径层（11 字段 / 11 规则 / Markdown 扫描）
   mdca_schema.py        338 行  契约校验器
   mdca_provenance.py    244 行  溯源层
@@ -504,7 +504,7 @@ B 路插件（默认关）
   mdca_checks.py         318 行  随机回代（仅 B 路自检）
 
 工具
-  road_a_backtest.py     619 行  五大真实数据集回测（70 条断言）
+  road_a_backtest.py     627 行  五大真实数据集回测（72 条断言）
   mdca_review.py         636 行  批量审查外部候选（五类分类 + 指纹聚合 + 盲区提示）
   baseline_b_road.py     119 行  B 路回归基线（--diff 必须差异 0）
   mdca_batch.py          495 行  生成候选 + 植入问题 + 度量（阶段 D 实验复现）
@@ -524,7 +524,7 @@ B 路插件（默认关）
 
 文档（随仓库公开）
   项目复盘与路线转向.md           路线与撤回清单（先读这个）
-  CHANGES_第3_4步_反推器与回测.md  A 路判据、70 条回测、一个分级语义变化
+  CHANGES_第3_4步_反推器与回测.md  A 路判据、72 条回测、一个分级语义变化
   CHANGES_第2步_插件化.md        温度计算怎么摘出去的
   方法对照_文献.md               与文献的 8 项差异
 ```

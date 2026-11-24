@@ -1084,10 +1084,11 @@ def audit_multipoint_consistency(
         }
         if not ok_inter and abs(rho) >= 0.9:
             findings.append(AuditFinding(
-                "I3_speed_dependent_resistance", "INFO",
+                "I3_speed_dependent_resistance", "REVIEW",
                 f"支路热阻随工况变量 x 严格单调变化（Spearman ρ={rho:+.2f}，"
                 f"从 {max(rs):.3f} 降至 {min(rs):.3f} K/W，比值 {max(rs)/min(rs):.2f}×）："
-                f"符合强迫对流热阻随转速/流量上升而下降的物理规律，不可作常参数跨转速外推",
+                f"符合强迫对流热阻随转速/流量上升而下降的物理规律，"
+                f"但**常参数交集为空**，不可作常参数跨工况外推——需人工确认用途后再用",
                 ("R",), out["resistance_series"],
             ))
 
