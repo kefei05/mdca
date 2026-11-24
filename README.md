@@ -76,7 +76,7 @@ python mdca_review.py cases_ai/                        # 控制台 + out/review.
 python mdca_review.py cases_ai/ --md out/review_ai.md  # 额外写 Markdown 报告
 python mdca_review.py cases/ cases_negative/ cases_ai/  # 一次审多批
 
-powershell -File run_tests.ps1        # 全部 18 项
+powershell -File run_tests.ps1        # 全部 19 项
 ```
 
 ---
@@ -303,6 +303,31 @@ Ragot & Maquin 2005 / Raïssi 2005（有界误差集合成员检验）。
 
 这堵的是一个反直觉的漏洞：**少给字段反而更容易过**。判据表与所需字段见 `mdca_inverter.py` 的 `CHECK_REQUIREMENTS`，自测 ⑬~⑮ 守着它。
 
+### 6.5 判据码落在哪个部位
+
+`mdca_anatomy.py` 把判据码映射到电机部位，供可视化用。部位有六个：绕组槽 / 磁钢气隙 / 定子→机壳热路 / 转子支路 / 母线反电势 / 数据层。
+
+两条纪律来自原型 v2 的教训（第一版满屏红等于没高亮）：
+
+```text
+红只给 primary 一处，且 fill；次重一律橙、只 stroke；其余淡灰
+数据层（单位错 / 哈希不符 / 口径混用 / 没来源）没有几何位置，
+  只做旁标签，禁止硬涂到零件上——假定位违背「只审不算」
+```
+
+一条 issue 可以落在**多个**部位：I1 的 `kcl_missing_pcu_in_rsa` 同时进「绕组槽」和「定子热路」——铜损在绕组，漏掉的却是流经 Rsa 的那段压降。指纹比判据码更准，所以指纹优先。
+
+未登记的判据码一律归数据层：宁可不上图，也不猜位置。
+
+AI01 的实际输出：
+
+```text
+primary   定子→机壳热路   BLOCK  #e5484d fill   [I1_kcl_violation, I2_negative_implied_Rws]
+secondary 绕组槽          BLOCK  #e8862e stroke [I1_kcl_violation]
+secondary 转子支路        BLOCK  #e8862e stroke [I1_kcl_violation]
+数据层     7 条 V2_optimistic
+```
+
 ---
 
 ## 七、B 路插件（默认关）
@@ -415,7 +440,7 @@ Rrs ∝ g / (λ_air · A_gap)          A_gap = π · D_gap · L
 ## 九、测试
 
 ```text
-run_tests.ps1     18 项
+run_tests.ps1     19 项
   A 路  plugins 15 / provenance 9 / scaling 5 / schema 15 / grading 17 /
         palette 5 / mdca A 路 7 / check A 路 17 / inverter 12 / backtest 5 集
   B 路  thermal 13 / thermal 插件 8 / scaling 插件 4 / mdca B 路 10 /
@@ -512,7 +537,7 @@ B 路插件（默认关）
   baseline_b_road.py     119 行  B 路回归基线（--diff 必须差异 0）
   mdca_batch.py          495 行  生成候选 + 植入问题 + 度量（阶段 D 实验复现）
   b5_rule_matrix.py      119 行  规则适用性矩阵
-  run_tests.ps1                 18 项一键自测
+  run_tests.ps1                 19 项一键自测
 
 数据
   cases/                        4 条主算例

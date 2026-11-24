@@ -193,6 +193,6 @@ python mdca_inverter.py selftest     # 12 条
 python mdca.py audit cases_ai/AI01.json
 
 # 全量
-powershell -NoProfile -ExecutionPolicy Bypass -File run_tests.ps1   # 18 项
+powershell -NoProfile -ExecutionPolicy Bypass -File run_tests.ps1   # 19 项
 python baseline_b_road.py --diff     # B 路 34 算例零差异
 ```
