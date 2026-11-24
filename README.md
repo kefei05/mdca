@@ -53,28 +53,28 @@ A 路不需要它，也就不会重犯这个错。
 
 ```bash
 # A 路（默认）
-python mdca.py audit cases/           # 审计目录 / .json / .jsonl
-python mdca.py audit cases_ai/AI01.json   # 看矛盾定位长什么样
-python mdca.py validate case.json     # 只做校验，不计算
-python mdca.py palette <md或目录>      # 口径审计（扫 Markdown 里的数字）
-python mdca.py plugins                # 列插件与默认状态
-python mdca.py selftest               # A 路冒烟（7 条）
-python mdca.py check 300              # A 路边界算例（17 条）
+python -m mdca audit cases/           # 审计目录 / .json / .jsonl
+python -m mdca audit cases_ai/AI01.json   # 看矛盾定位长什么样
+python -m mdca validate case.json     # 只做校验，不计算
+python -m mdca palette <md或目录>      # 口径审计（扫 Markdown 里的数字）
+python -m mdca plugins                # 列插件与默认状态
+python -m mdca selftest               # A 路冒烟（7 条）
+python -m mdca check 300              # A 路边界算例（17 条）
 
 # B 路（显式启用）
-python mdca.py audit cases/ --plugins thermal,scaling
-python mdca.py selftest --plugins thermal,scaling
-python mdca.py check 300 --plugins thermal,scaling
+python -m mdca audit cases/ --plugins thermal,scaling
+python -m mdca selftest --plugins thermal,scaling
+python -m mdca check 300 --plugins thermal,scaling
 
 # 回测与自测
 python road_a_backtest.py             # 五大真实数据集，72 条断言
-python mdca_inverter.py selftest      # 反推器判据（12 条）
+python -m mdca.inverter selftest      # 反推器判据（12 条）
 python baseline_b_road.py --diff      # B 路 34 算例与基线逐字段对比
 
 # 批量审查外部候选（把一堆审计结果变成可行动的分类）
-python mdca_review.py cases_ai/                        # 控制台 + out/review.json
-python mdca_review.py cases_ai/ --md out/review_ai.md  # 额外写 Markdown 报告
-python mdca_review.py cases/ cases_negative/ cases_ai/  # 一次审多批
+python -m mdca.review cases_ai/                        # 控制台 + out/review.json
+python -m mdca.review cases_ai/ --md out/review_ai.md  # 额外写 Markdown 报告
+python -m mdca.review cases/ cases_negative/ cases_ai/  # 一次审多批
 
 powershell -File run_tests.ps1        # 全部 19 项
 ```
@@ -107,7 +107,7 @@ candidate.json / .jsonl
 
 ## 四、候选契约（schema 1.0）
 
-完整定义见 [mdca_schema.json](mdca_schema.json)，校验器 [mdca_schema.py](mdca_schema.py)。
+完整定义见 [mdca_schema.json](mdca_schema.json)，校验器 [mdca/schema.py](mdca/schema.py)。
 
 ```jsonc
 {
@@ -206,7 +206,7 @@ SOLVER_UNKNOWN   求解器没给出结论：插件加载失败或插件缺必需
 
 ### 5.2 四档分级
 
-规则在 [grading.json](grading.json)（grading-1.4，带 version 与 changelog），实现 [mdca_grading.py](mdca_grading.py)。
+规则在 [grading.json](grading.json)（grading-1.4，带 version 与 changelog），实现 [mdca/grading.py](mdca/grading.py)。
 
 ```text
 淘汰      模型层明确违规、耦合失稳、模型失效，或硬拦截属物理/数学上不可能
@@ -237,7 +237,7 @@ near_limit_band_K = 5 K ≈ 2× 热电偶不确定度（±2K）+ 1K
 
 ## 六、A 路的判据
 
-实现见 [mdca_inverter.py](mdca_inverter.py)（900 行，12 条自测）。核心方法只有一句：
+实现见 [mdca/inverter.py](mdca/inverter.py)（900 行，12 条自测）。核心方法只有一句：
 **不需要自己的热阻与实测，用对方给的数检验对方给的数。**
 
 ### 6.1 电磁与功率链闭合（C1~C3）
@@ -301,11 +301,11 @@ Ragot & Maquin 2005 / Raïssi 2005（有界误差集合成员检验）。
   不代表数据自洽性已被检验。
 ```
 
-这堵的是一个反直觉的漏洞：**少给字段反而更容易过**。判据表与所需字段见 `mdca_inverter.py` 的 `CHECK_REQUIREMENTS`，自测 ⑬~⑮ 守着它。
+这堵的是一个反直觉的漏洞：**少给字段反而更容易过**。判据表与所需字段见 `mdca/inverter.py` 的 `CHECK_REQUIREMENTS`，自测 ⑬~⑮ 守着它。
 
 ### 6.5 判据码落在哪个部位
 
-`mdca_anatomy.py` 把判据码映射到电机部位，供可视化用。部位有六个：绕组槽 / 磁钢气隙 / 定子→机壳热路 / 转子支路 / 母线反电势 / 数据层。
+`mdca/anatomy.py` 把判据码映射到电机部位，供可视化用。部位有六个：绕组槽 / 磁钢气隙 / 定子→机壳热路 / 转子支路 / 母线反电势 / 数据层。
 
 两条纪律来自原型 v2 的教训（第一版满屏红等于没高亮）：
 
@@ -398,7 +398,7 @@ Rrs ∝ g / (λ_air · A_gap)          A_gap = π · D_gap · L
 
 ### 8.1 批量审查：把审计结果变成可行动的分类
 
-`mdca_review.py` 不是「再跑一遍 audit」，而是把一批结果分成**五类**，每类对应一个动作：
+`mdca/review.py` 不是「再跑一遍 audit」，而是把一批结果分成**五类**，每类对应一个动作：
 
 | 分类 | 判据 | 该怎么处理 |
 |---|---|---|
@@ -521,31 +521,32 @@ U  来自用户工程文件，待提供原件
   CONTRIBUTING.md               改判据的六步流程
   pyproject.toml                项目元信息（可 pip install -e .）
   requirements.txt              无第三方依赖，仅注明 Python ≥ 3.9
-  run_tests.ps1                 19 项一键自测
   .github/workflows/ci.yml      CI：Python 3.9 / 3.12 上跑全量
 
-A 路核心
-  mdca.py              1247 行  编排（校验→拦截→插件→判定→分级→账本）
-  mdca_inverter.py      1555 行  反推器 + 电磁-热自洽性判据集
-  mdca_anatomy.py        312 行  判据码 → 部位映射（可视化地基）
-  mdca_palette.py       1020 行  口径层（11 字段 / 11 规则 / Markdown 扫描）
-  mdca_schema.py         338 行  契约校验器
-  mdca_provenance.py     244 行  溯源层
-  mdca_grading.py        285 行  四档分级（配置驱动）
-  mdca_plugins.py        370 行  插件注册表与四级开关
+包结构
+  mdca/                         15 个模块，命令一律 `python -m mdca.<模块>`
+    cli.py                      主入口（校验→拦截→插件→判定→分级→账本）
+    inverter.py                 A 路核心判据：电磁链闭合 + 热守恒反推
+    anatomy.py                  判据码 → 电机部位映射（可视化地基）
+    palette.py                  口径层（11 字段 / 11 规则 / Markdown 扫描）
+    schema.py                   契约校验器
+    provenance.py               溯源层（sha256 / 代码指纹 / 账本）
+    grading.py                  四档分级（配置驱动）
+    plugins.py                  插件注册表与四级开关
+    plugin_thermal.py           B 路适配器：温度计算
+    plugin_scaling.py           B 路适配器：几何缩放
+    thermal.py                  B 路本体（A 路不 import）
+    scaling.py                  B 路缩放律本体
+    checks.py                   B 路随机回代自检
+    review.py                   批量审查外部候选（五类分类 + 指纹聚合）
 
-B 路插件（默认关）
-  mdca_plugin_thermal.py 346 行  温度计算适配器
-  mdca_plugin_scaling.py 169 行  几何缩放适配器
-  mdca_thermal.py        689 行  温度计算本体（A 路不 import）
-  mdca_scaling.py        215 行  缩放律本体
-  mdca_checks.py         318 行  随机回代（仅 B 路自检）
-
-工具与校验
-  road_a_backtest.py     627 行  五大真实数据集回测（72 条断言）
-  mdca_review.py         634 行  批量审查外部候选（五类分类 + 指纹聚合 + 盲区提示）
-  baseline_b_road.py     119 行  B 路回归基线（--diff 必须差异 0）
-  doc_consistency.py     228 行  文档里声明的行数/项数是否等于实测（防文档漂移）
+测试与校验
+  run_tests.ps1                 19 项一键自测
+  road_a_backtest.py            五大真实数据集回测（72 条断言）
+  baseline_b_road.py            B 路回归基线（--diff 必须差异 0）
+  doc_consistency.py            文档里的行数/项数是否等于实测（防文档漂移）
+  grading.json                  分级规则与阈值依据（grading-1.4）
+  mdca_schema.json              候选契约（1.0）
 
 数据
   cases/                        4 条主算例

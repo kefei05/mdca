@@ -20,7 +20,7 @@ powershell -File run_tests.ps1    # 19 项，全绿才动手
 1. **先有算例**：写一个能触发它的 case（放 `cases_negative/`），或者找到一条真实事故记录。判据不能凭空想，全从真实错法长出来。
 2. **写判据 + 自测**：在对应模块里实现，并在 `selftest()` 里加断言。断言要能区分「判据生效」和「判据碰巧路过」。
 3. **登记判据码**：如果是 BLOCK 级，必须同时加进 `grading.json` 的 `block_kinds`，否则分级会静默回落到兜底档。
-4. **挂进覆盖率**：在 `mdca_inverter.py` 的 `CHECK_REQUIREMENTS` 里登记它需要哪些字段，否则「缺字段没审」的统计会漏掉它。
+4. **挂进覆盖率**：在 `mdca/inverter.py` 的 `CHECK_REQUIREMENTS` 里登记它需要哪些字段，否则「缺字段没审」的统计会漏掉它。
 5. **加进回测**：`road_a_backtest.py` 里补一条断言，用独立物理恒等式或文献数字做期望值。
 6. **跑全量**：`run_tests.ps1` + `baseline_b_road.py --diff`（B 路基线必须仍是「差异 0 个」）。
 

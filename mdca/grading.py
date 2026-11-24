@@ -16,8 +16,8 @@ MDCA 四档分级（配置驱动，规则不写死）
 规则来源：`grading.json`，带 version 与 changelog。改规则必须升版本并写理由。
 
 用法：
-    python mdca_grading.py selftest
-    python mdca_grading.py out/audit.json        # 对已有审计结果分级
+    python -m mdca.grading selftest
+    python -m mdca.grading out/audit.json        # 对已有审计结果分级
 """
 
 from __future__ import annotations
@@ -32,8 +32,8 @@ try:
 except Exception:
     pass
 
-HERE = Path(__file__).resolve().parent
-CONFIG_PATH = HERE / "grading.json"
+ROOT = Path(__file__).resolve().parent.parent
+CONFIG_PATH = ROOT / "grading.json"
 
 TIER_ORDER = {"eliminate": 0, "manual": 1, "refine": 2, "external": 3}
 # 冲突时取更保守（序号小）的一方

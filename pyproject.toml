@@ -24,23 +24,7 @@ Homepage = "https://github.com/kefei05/mdca"
 Source = "https://github.com/kefei05/mdca"
 
 [tool.setuptools]
-# 模块平铺在仓库根目录，没有包结构，因此逐个列出。
-py-modules = [
-  "mdca",
-  "mdca_anatomy",
-  "mdca_checks",
-  "mdca_grading",
-  "mdca_inverter",
-  "mdca_palette",
-  "mdca_plugin_scaling",
-  "mdca_plugin_thermal",
-  "mdca_plugins",
-  "mdca_provenance",
-  "mdca_review",
-  "mdca_scaling",
-  "mdca_schema",
-  "mdca_thermal",
-  "road_a_backtest",
-  "baseline_b_road",
-  "doc_consistency",
-]
+packages = ["mdca"]
+
+[tool.setuptools.package-data]
+mdca = ["../grading.json", "../mdca_schema.json"]

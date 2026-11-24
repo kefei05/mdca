@@ -40,7 +40,7 @@ from typing import Any, Dict, List, Optional
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from mdca_scaling import Geometry, scale  # noqa: E402
+from .scaling import Geometry, scale  # noqa: E402
 
 NAME = "scaling"
 ROAD = "B"

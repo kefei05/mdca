@@ -9,9 +9,9 @@ MDCA 候选契约校验器（轻量，无外部依赖）
 不校验物理合理性（那是 mdca.py 的 validate() 干的）。
 
 用法：
-    python mdca_schema.py selftest
-    python mdca_schema.py cases/joint_A_body_conduction.json
-    python mdca_schema.py cases/            # 校验目录
+    python -m mdca.schema selftest
+    python -m mdca.schema cases/joint_A_body_conduction.json
+    python -m mdca.schema cases/            # 校验目录
 """
 
 from __future__ import annotations

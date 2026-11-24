@@ -36,10 +36,10 @@ DOCS = ["README.md", "DESIGN.md", "方法对照_文献.md"]
 
 # 参与行数校验的 .py（其余脚本不写行数）
 LINE_CHECKED = {
-    "mdca.py", "mdca_inverter.py", "mdca_palette.py", "mdca_schema.py",
-    "mdca_provenance.py", "mdca_grading.py", "mdca_plugins.py",
-    "mdca_plugin_thermal.py", "mdca_plugin_scaling.py", "mdca_thermal.py",
-    "mdca_scaling.py", "mdca_checks.py", "mdca_review.py",
+    "mdca/cli.py", "mdca/inverter.py", "mdca/palette.py", "mdca/schema.py",
+    "mdca/provenance.py", "mdca/grading.py", "mdca/plugins.py",
+    "mdca/plugin_thermal.py", "mdca/plugin_scaling.py", "mdca/thermal.py",
+    "mdca/scaling.py", "mdca/checks.py", "mdca/review.py", "mdca/anatomy.py",
     "road_a_backtest.py", "baseline_b_road.py",
 }
 

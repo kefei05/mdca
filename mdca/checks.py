@@ -18,8 +18,8 @@ MDCA 自检：随机数值回代（方案 7.3 第 3 层）
 只要破一条，说明实现与定义不一致——这比任何单个算例都更能证明代码没错。
 
 用法：
-    python mdca_checks.py              # 500 组随机参数
-    python mdca_checks.py 2000         # 指定样本数
+    python -m mdca.checks              # 500 组随机参数
+    python -m mdca.checks 2000         # 指定样本数
 """
 
 from __future__ import annotations
@@ -31,8 +31,8 @@ from typing import Any, Dict, List, Tuple
 if __package__ in (None, ""):
     sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent))
 
-from mdca_scaling import JOINT_REF_GEOM, JOINT_REF_R, Geometry, scale  # noqa: E402
-from mdca_thermal import Cas, Cas3, solve_point, solve_three  # noqa: E402
+from .scaling import JOINT_REF_GEOM, JOINT_REF_R, Geometry, scale  # noqa: E402
+from .thermal import Cas, Cas3, solve_point, solve_three  # noqa: E402
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -306,7 +306,7 @@ def main(argv: List[str]) -> int:
     rep = run(n)
     print_report(rep)
 
-    out = __import__("pathlib").Path(__file__).resolve().parent / "out"
+    out = __import__("pathlib").Path(__file__).resolve().parent.parent / "out"
     out.mkdir(parents=True, exist_ok=True)
     import json
     (out / "checks.json").write_text(

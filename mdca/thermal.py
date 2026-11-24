@@ -29,8 +29,8 @@ g >= 1 ⇒ 损耗随温度增长超过散热能力 ⇒ COUPLING_FAILED，不输�
 所以最不利顶点给出 Tw_hi、最有利顶点给出 Tw_lo。前提不成立时降级 REVIEW。
 
 用法：
-    python mdca_thermal.py            # 跑两个内置算例（joint-module A/B）
-    python mdca_thermal.py --selftest # 方案 11.13 的单元测试
+    python -m mdca.thermal            # 跑两个内置算例（joint-module A/B）
+    python -m mdca.thermal --selftest # 方案 11.13 的单元测试
 """
 
 from __future__ import annotations
@@ -672,7 +672,7 @@ def main(argv: List[str]) -> int:
         results.append(o)
     print("-" * 78)
 
-    out_dir = Path(__file__).resolve().parent / "out"
+    out_dir = Path(__file__).resolve().parent.parent / "out"
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / "thermal_audit.json"
     path.write_text(json.dumps(

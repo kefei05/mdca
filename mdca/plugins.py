@@ -67,10 +67,10 @@ class PluginSpec:
 
 REGISTRY: Dict[str, PluginSpec] = {
     "thermal": PluginSpec(
-        name="thermal", road="B", module="mdca_plugin_thermal",
+        name="thermal", road="B", module="mdca.plugin_thermal",
         summary="两热阻/三节点温度计算（含区间与压力测试）"),
     "scaling": PluginSpec(
-        name="scaling", road="B", module="mdca_plugin_scaling",
+        name="scaling", road="B", module="mdca.plugin_scaling",
         summary="几何缩放律 → Rws/Rsa/Rrs（含外推检查）"),
 }
 
@@ -183,7 +183,7 @@ def from_env() -> Optional[List[str]]:
 def split_plugin_args(argv: Sequence[str]) -> Tuple[List[str], Optional[str]]:
     """从命令行参数里剥出 --plugins / --plugins=x，其余顺序不变。
 
-    mdca.py 与 mdca_review.py 原先各写一份，逻辑一旦不同步，同一个
+    mdca.py 与 review.py 原先各写一份，逻辑一旦不同步，同一个
     `--plugins` 在两个入口的行为就会不一致。统一放这里。
     """
     out: List[str] = []

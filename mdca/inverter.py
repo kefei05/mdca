@@ -51,7 +51,7 @@ MDCA A 路核心引擎：反推器 + 电磁-热全链路自洽性判据集 + 矛
       non-linear parameter and state estimation," MCMDS, 11(1):75-92, 2005.
 
 用法：
-    python mdca_inverter.py selftest
+    python -m mdca.inverter selftest
 """
 
 from __future__ import annotations
@@ -1357,7 +1357,7 @@ def selftest() -> bool:
               + (f"  {detail}" if detail and not good else ""))
         ok = ok and good
 
-    print("=== mdca_inverter.py 自测（反推器 + 电磁-热自洽性判据集）===")
+    print("=== inverter.py 自测（反推器 + 电磁-热自洽性判据集）===")
 
     # 1) C1a: 课设报告 λpm = 8 × 0.933 × 1.8685 的 4 倍抵消陷阱
     _, f1 = audit_electromagnetic_chain({

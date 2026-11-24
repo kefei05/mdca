@@ -8,7 +8,7 @@ MDCA 批量审查外部候选（A 路）
     输入：外部给的一批候选（AI / 优化器 / 论文表格）
     输出：每条的自洽性判断 + 矛盾点
 
-mdca_review.py   审查外部候选：没有标签、来源混杂、字段可能不全，产出人可读报告
+review.py   审查外部候选：没有标签、来源混杂、字段可能不全，产出人可读报告
 
 核心不是「再跑一遍 audit」，而是**把一堆审计结果变成可行动的分类**：
 
@@ -19,10 +19,10 @@ mdca_review.py   审查外部候选：没有标签、来源混杂、字段可能
     全干净        AUDIT_PASS → 可以进下一轮
 
 用法：
-    python mdca_review.py cases_ai/                  # 控制台报告 + out/review.json
-    python mdca_review.py cases_ai/ --md out/r.md    # 额外写 Markdown 报告
-    python mdca_review.py cases/ cases_ai/ --plugins thermal,scaling
-    python mdca_review.py 某个候选.jsonl             # 单文件（支持 JSONL）
+    python -m mdca.review cases_ai/                  # 控制台报告 + out/review.json
+    python -m mdca.review cases_ai/ --md out/r.md    # 额外写 Markdown 报告
+    python -m mdca.review cases/ cases_ai/ --plugins thermal,scaling
+    python -m mdca.review 某个候选.jsonl             # 单文件（支持 JSONL）
 """
 
 from __future__ import annotations
@@ -35,19 +35,19 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE))
+ROOT = HERE.parent
 
-from mdca import audit, load_case, parse_case_doc  # noqa: E402
-from mdca_grading import grade, load_config  # noqa: E402
-from mdca_plugins import PluginError, split_plugin_args  # noqa: E402
-from mdca_schema import read_jsonl  # noqa: E402
+from .cli import audit, load_case, parse_case_doc  # noqa: E402
+from .grading import grade, load_config  # noqa: E402
+from .plugins import PluginError, split_plugin_args  # noqa: E402
+from .schema import read_jsonl  # noqa: E402
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
     pass
 
-OUT_DIR = HERE / "out"
+OUT_DIR = ROOT / "out"
 
 # 自洽性判据的码前缀：命中即「物理上不可能」，不是「格式问题」也不是「缺来源」
 SELF_CONSISTENCY_PREFIXES = ("C1_", "C2_", "C3_", "I1_", "I2_", "I3_", "I4_")
@@ -492,7 +492,7 @@ def selftest() -> bool:
               + (f"  {detail}" if detail and not good else ""))
         ok = ok and good
 
-    print("=== mdca_review.py 自测 ===")
+    print("=== review.py 自测 ===")
 
     # 1) 分类优先级：物理不可能 > 格式问题 > 缺来源
     check("物理不可能优先于格式问题",
@@ -511,7 +511,7 @@ def selftest() -> bool:
           classify([], ["D1_out_of_domain"], "AUDIT_REVIEW") == "needs_review")
 
     # 2) 端到端：AI 目录能被展开，且分类与指纹都对
-    ai_dir = HERE / "cases_ai"
+    ai_dir = ROOT / "cases_ai"
     if ai_dir.exists():
         found, failures = collect_cases([str(ai_dir)])
         check("收集 cases_ai/ 得到 10 条且无失败",
@@ -527,7 +527,7 @@ def selftest() -> bool:
         check("cases_ai/ 存在", False, "目录不存在")
 
     # 3) 盲区提示：带 scaling 段但未启用缩放插件时要提醒
-    sc_case = (HERE / "cases" / "joint_C_stretched_45mm.json")
+    sc_case = (ROOT / "cases" / "joint_C_stretched_45mm.json")
     if sc_case.exists():
         cfg = load_config()
         r = review_one("joint_C", load_case(sc_case), cfg, None)
@@ -606,7 +606,7 @@ def main(argv: List[str]) -> int:
     payload = {
         "schema": "1.0",
         "title": title,
-        "generated_by": "mdca_review.py",
+        "generated_by": "review.py",
         "plugins": plugins,
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "stats": stats,

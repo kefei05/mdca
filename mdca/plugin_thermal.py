@@ -54,7 +54,7 @@ from typing import Any, Dict, List, Optional, Tuple
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from mdca_thermal import (  # noqa: E402
+from .thermal import (  # noqa: E402
     Cas,
     Cas3,
     judge_box,
@@ -136,7 +136,7 @@ def to_boxcas(case: Any, peddy: float = 0.0) -> Any:
         return p.interval if p.interval else (p.value, p.value)
 
     pfe_lo, pfe_hi = rng("Pfe", 0.0)
-    from mdca_thermal import BoxCas
+    from .thermal import BoxCas
     return BoxCas(
         name=case.case_id,
         Rws=rng("Rws", 1.0), Rsa=rng("Rsa", 1.0),

@@ -28,9 +28,9 @@ MDCA 第一层：口径审计（palette audit）
     R11 同量多值      —— 同名同单位同范围但数值不同（>0.1%）
 
 用法：
-    python mdca_palette.py                # 跑内置 joint-module 数据集
-    python mdca_palette.py --selftest     # 只跑规则自测
-    python mdca_palette.py --scan <md>    # 扫描 Markdown 中的 @{...} 标记
+    python -m mdca.palette                # 跑内置 joint-module 数据集
+    python -m mdca.palette --selftest     # 只跑规则自测
+    python -m mdca.palette --scan <md>    # 扫描 Markdown 中的 @{...} 标记
 """
 
 from __future__ import annotations
@@ -958,7 +958,7 @@ def main(argv: List[str]) -> int:
             for inv in sorted(invs, key=lambda x: -x["bare_pct"]):
                 print(f"{Path(inv['file']).name[:36]:<38}{inv['total']:>6}"
                       f"{inv['partial']:>8}{inv['bare']:>6}{inv['bare_pct']:>7.1f}%")
-            out_dir = Path(__file__).resolve().parent / "out"
+            out_dir = Path(__file__).resolve().parent.parent / "out"
             out_dir.mkdir(parents=True, exist_ok=True)
             slim = [{k: v for k, v in i.items() if k != "bare_samples"} for i in invs]
             (out_dir / "inventory.json").write_text(

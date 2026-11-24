@@ -11,13 +11,13 @@ MDCA 统一入口：A 路审计（默认）+ B 路插件（可选）
 
 本文件只做编排，不写物理：
 
-    mdca_palette.py          口径层（字段定义、冲突规则、Markdown 扫描）
-    mdca_schema.py           契约层（结构校验）
-    mdca_provenance.py       溯源层（sha256、代码指纹、append-only 账本）
-    mdca_grading.py          分级层（六状态 → 四档）
-    mdca_plugins.py          插件注册表与开关（无业务逻辑）
-    mdca_plugin_thermal.py   B 路：两热阻 / 三节点 / 区间 / 压力测试
-    mdca_plugin_scaling.py   B 路：几何缩放律 → Rws/Rsa/Rrs
+    palette.py          口径层（字段定义、冲突规则、Markdown 扫描）
+    schema.py           契约层（结构校验）
+    provenance.py       溯源层（sha256、代码指纹、append-only 账本）
+    grading.py          分级层（六状态 → 四档）
+    plugins.py          插件注册表与开关（无业务逻辑）
+    plugin_thermal.py   B 路：两热阻 / 三节点 / 区间 / 压力测试
+    plugin_scaling.py   B 路：几何缩放律 → Rws/Rsa/Rrs
     mdca.py                  编排（校验 → 拦截 → 计算 → 判定 → 报告）  ← 本文件
 
 A 路的结论词汇（与温度无关）：
@@ -31,15 +31,15 @@ A 路的结论词汇（与温度无关）：
 
 用法：
 
-    python mdca.py audit cases/                          # A 路（默认，不算温度）
-    python mdca.py audit cases/ --plugins thermal,scaling  # B 路：叠加温度计算
-    python mdca.py validate cases/joint_A_body_conduction.json
-    python mdca.py palette <md文件或目录>                  # 口径审计（转发）
-    python mdca.py plugins                               # 列插件与开关状态
-    python mdca.py selftest                              # A 路冒烟
-    python mdca.py selftest --plugins thermal            # A 路 + B 路冒烟
-    python mdca.py check 300                             # A 路边界算例
-    python mdca.py check 300 --plugins thermal,scaling   # A + B 路全量自检
+    python -m mdca audit cases/                          # A 路（默认，不算温度）
+    python -m mdca audit cases/ --plugins thermal,scaling  # B 路：叠加温度计算
+    python -m mdca validate cases/joint_A_body_conduction.json
+    python -m mdca palette <md文件或目录>                  # 口径审计（转发）
+    python -m mdca plugins                               # 列插件与开关状态
+    python -m mdca selftest                              # A 路冒烟
+    python -m mdca selftest --plugins thermal            # A 路 + B 路冒烟
+    python -m mdca check 300                             # A 路边界算例
+    python -m mdca check 300 --plugins thermal,scaling   # A + B 路全量自检
 """
 
 from __future__ import annotations
@@ -50,10 +50,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from mdca_palette import MIX_BLOCKING, PALETTE_FIELDS, Palette  # noqa: E402
-from mdca_plugins import (  # noqa: E402
+from .palette import MIX_BLOCKING, PALETTE_FIELDS, Palette  # noqa: E402
+from .plugins import (  # noqa: E402
     DEFAULT_PLUGINS,
     PluginError,
     all_names as plugin_names,
@@ -63,7 +62,7 @@ from mdca_plugins import (  # noqa: E402
     resolve as resolve_plugins,
     run as run_plugin,
 )
-from mdca_provenance import (  # noqa: E402
+from .provenance import (  # noqa: E402
     CONSTRAINT_VERSION,
     LEDGER_NAME,
     Ledger,
@@ -75,8 +74,8 @@ from mdca_provenance import (  # noqa: E402
     sha256_bytes,
     sha256_file,
 )
-from mdca_schema import read_jsonl, validate_document  # noqa: E402
-from mdca_inverter import audit_case_consistency  # noqa: E402
+from .schema import read_jsonl, validate_document  # noqa: E402
+from .inverter import audit_case_consistency  # noqa: E402
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -85,7 +84,8 @@ except Exception:
 
 
 SCHEMA_VERSION = "1.0"
-OUT_DIR = Path(__file__).resolve().parent / "out"
+ROOT = Path(__file__).resolve().parent.parent
+OUT_DIR = ROOT / "out"
 
 # A 路必需参数（审计只要求「有损耗、有环境」，不要求热阻）
 REQUIRED_A: Dict[str, str] = {
@@ -956,7 +956,7 @@ def cmd_validate(paths: List[str]) -> int:
 def cmd_palette(args: List[str]) -> int:
     import subprocess
     here = Path(__file__).resolve().parent
-    return subprocess.call([sys.executable, str(here / "mdca_palette.py"), "--scan"] + args)
+    return subprocess.call([sys.executable, "-m", "mdca.palette", "--scan"] + args)
 
 
 def cmd_plugins() -> int:
@@ -1131,7 +1131,7 @@ def cmd_check(args: List[str], plugins: Any = None) -> int:
         print(f"插件参数错误：{e}")
         return 2
 
-    here = Path(__file__).resolve().parent
+    here = ROOT
     n = 500
     if args:
         try:
@@ -1144,9 +1144,9 @@ def cmd_check(args: List[str], plugins: Any = None) -> int:
 
     # 随机数值回代验证的是 thermal/scaling 的实现，属于 B 路自检
     if "thermal" in active:
-        import mdca_checks
-        rep = mdca_checks.run(n)
-        mdca_checks.print_report(rep)
+        from . import checks as _checks
+        rep = _checks.run(n)
+        _checks.print_report(rep)
         ok_all = rep["ok"]
     else:
         print("=" * 78)
