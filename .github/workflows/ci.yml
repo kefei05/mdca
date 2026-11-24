@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: 安装（可选，验证 pyproject 可构建）
+        run: pip install -e .
+
+      - name: 全量测试
+        shell: pwsh
+        run: ./run_tests.ps1
+
+      - name: B 路回归基线（必须差异 0 个）
+        run: python baseline_b_road.py --diff

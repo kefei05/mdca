@@ -515,14 +515,24 @@ U  来自用户工程文件，待提供原件
 ## 十三、文件
 
 ```text
+顶层
+  README.md                     用法、判据、限制
+  LICENSE                       MIT + 非商用条款（source-available，非开源）
+  CONTRIBUTING.md               改判据的六步流程
+  pyproject.toml                项目元信息（可 pip install -e .）
+  requirements.txt              无第三方依赖，仅注明 Python ≥ 3.9
+  run_tests.ps1                 19 项一键自测
+  .github/workflows/ci.yml      CI：Python 3.9 / 3.12 上跑全量
+
 A 路核心
   mdca.py              1247 行  编排（校验→拦截→插件→判定→分级→账本）
   mdca_inverter.py      1555 行  反推器 + 电磁-热自洽性判据集
+  mdca_anatomy.py        312 行  判据码 → 部位映射（可视化地基）
   mdca_palette.py       1020 行  口径层（11 字段 / 11 规则 / Markdown 扫描）
-  mdca_schema.py        338 行  契约校验器
-  mdca_provenance.py    244 行  溯源层
-  mdca_grading.py       285 行  四档分级（配置驱动）
-  mdca_plugins.py       370 行  插件注册表与四级开关
+  mdca_schema.py         338 行  契约校验器
+  mdca_provenance.py     244 行  溯源层
+  mdca_grading.py        285 行  四档分级（配置驱动）
+  mdca_plugins.py        370 行  插件注册表与四级开关
 
 B 路插件（默认关）
   mdca_plugin_thermal.py 346 行  温度计算适配器
@@ -531,13 +541,15 @@ B 路插件（默认关）
   mdca_scaling.py        215 行  缩放律本体
   mdca_checks.py         318 行  随机回代（仅 B 路自检）
 
-工具
+工具与校验
   road_a_backtest.py     627 行  五大真实数据集回测（72 条断言）
   mdca_review.py         636 行  批量审查外部候选（五类分类 + 指纹聚合 + 盲区提示）
   baseline_b_road.py     119 行  B 路回归基线（--diff 必须差异 0）
   mdca_batch.py          495 行  生成候选 + 植入问题 + 度量（批量实验复现）
+  doc_consistency.py     228 行  文档里声明的行数/项数是否等于实测（防文档漂移）
   b5_rule_matrix.py      119 行  规则适用性矩阵
-  run_tests.ps1                 19 项一键自测
+  formula_check.py       190 行  文献公式逐条核对（方法对照的底稿）
+  rws_from_geometry.py   118 行  从几何估 Rws 的尝试（B 路雏形）
 
 数据
   cases/                        4 条主算例
@@ -548,22 +560,24 @@ B 路插件（默认关）
   baselines/v0.2_b_road.json    B 路基线快照
   mdca_schema.json              候选契约（1.0）
   grading.json                  分级规则与阈值依据（grading-1.4）
-  refs/                         文献 PDF + 提取文本（gitignore）
+  refs/REFERENCES.md            引用的文献与数据来源（PDF 原件不入库）
 
-文档（随仓库公开）
+文档
+  MDCA_项目说明.md               它是什么、不做什么、为什么这样设计
   项目复盘与路线转向.md           路线与撤回清单（先读这个）
-  设计记录_反推器与回测.md  A 路判据、72 条回测、一个分级语义变化
-  设计记录_温度计算插件化.md        温度计算怎么摘出去的
+  设计记录_反推器与回测.md        A 路判据、72 条回测、一个分级语义变化
+  设计记录_温度计算插件化.md      温度计算怎么摘出去的
   方法对照_文献.md               与文献的 8 项差异
 ```
 
 ### 13.1 文档地图
 
-随仓库公开的文档只有四份，按你要回答的问题查表：
+随仓库公开的文档有六份，按你要回答的问题查表：
 
 | 你想知道 | 读这个 |
 |---|---|
 | **这工具现在能干什么、怎么用** | 本文件（README） |
+| **它的设计取舍与不做的事** | [MDCA_项目说明.md](MDCA_项目说明.md) |
 | **为什么从「热计算器」转向「审计器」** | [项目复盘与路线转向.md](项目复盘与路线转向.md)（最重要） |
 | **A 路具体有哪些判据、靠不靠得住** | [设计记录_反推器与回测.md](设计记录_反推器与回测.md) |
 | **温度计算是怎么摘成插件的** | [设计记录_温度计算插件化.md](设计记录_温度计算插件化.md) |

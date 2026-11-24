@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mdca"
+version = "0.4.0"
+description = "电机设计约束审计器 —— 审数据能不能用，不算电机的性能"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT with Non-Commercial Clause" }
+authors = [{ name = "kefei" }]
+keywords = ["motor-design", "audit", "pmsm", "thermal-network", "consistency-check"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Software Development :: Quality Assurance",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/kefei05/mdca"
+Source = "https://github.com/kefei05/mdca"
+
+[tool.setuptools]
+# 模块平铺在仓库根目录，没有包结构，因此逐个列出。
+py-modules = [
+  "mdca",
+  "mdca_anatomy",
+  "mdca_batch",
+  "mdca_checks",
+  "mdca_grading",
+  "mdca_inverter",
+  "mdca_palette",
+  "mdca_plugin_scaling",
+  "mdca_plugin_thermal",
+  "mdca_plugins",
+  "mdca_provenance",
+  "mdca_review",
+  "mdca_scaling",
+  "mdca_schema",
+  "mdca_thermal",
+  "road_a_backtest",
+  "baseline_b_road",
+  "doc_consistency",
+  "b5_rule_matrix",
+  "formula_check",
+  "rws_from_geometry",
+]
