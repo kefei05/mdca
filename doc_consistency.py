@@ -39,8 +39,8 @@ LINE_CHECKED = {
     "mdca.py", "mdca_inverter.py", "mdca_palette.py", "mdca_schema.py",
     "mdca_provenance.py", "mdca_grading.py", "mdca_plugins.py",
     "mdca_plugin_thermal.py", "mdca_plugin_scaling.py", "mdca_thermal.py",
-    "mdca_scaling.py", "mdca_checks.py", "mdca_batch.py", "mdca_review.py",
-    "road_a_backtest.py", "baseline_b_road.py", "b5_rule_matrix.py",
+    "mdca_scaling.py", "mdca_checks.py", "mdca_review.py",
+    "road_a_backtest.py", "baseline_b_road.py",
 }
 
 # 行数容差：文档写整数，实际按行数统计，允许 ±0

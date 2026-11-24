@@ -543,13 +543,9 @@ B 路插件（默认关）
 
 工具与校验
   road_a_backtest.py     627 行  五大真实数据集回测（72 条断言）
-  mdca_review.py         636 行  批量审查外部候选（五类分类 + 指纹聚合 + 盲区提示）
+  mdca_review.py         634 行  批量审查外部候选（五类分类 + 指纹聚合 + 盲区提示）
   baseline_b_road.py     119 行  B 路回归基线（--diff 必须差异 0）
-  mdca_batch.py          495 行  生成候选 + 植入问题 + 度量（批量实验复现）
   doc_consistency.py     228 行  文档里声明的行数/项数是否等于实测（防文档漂移）
-  b5_rule_matrix.py      119 行  规则适用性矩阵
-  formula_check.py       190 行  文献公式逐条核对（方法对照的底稿）
-  rws_from_geometry.py   118 行  从几何估 Rws 的尝试（B 路雏形）
 
 数据
   cases/                        4 条主算例
