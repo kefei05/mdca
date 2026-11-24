@@ -32,7 +32,7 @@ except Exception:
     pass
 
 # 要校验的仓库内公开文档
-DOCS = ["README.md", "MDCA_项目说明.md", "设计记录_反推器与回测.md"]
+DOCS = ["README.md", "DESIGN.md", "方法对照_文献.md"]
 
 # 参与行数校验的 .py（其余脚本不写行数）
 LINE_CHECKED = {

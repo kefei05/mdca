@@ -34,7 +34,7 @@ REQUIRED_TOP = ("schema", "case_id", "params", "limits")
 # A 路契约：只要求「有损耗、有环境」。
 # Rws/Rsa 的必需性由 thermal 插件在运行时检查（code=V1_plugin_missing），
 # 因为 A 路不产生温度，就不该强迫上游先交出热阻——那正是「借热阻」的入口
-# （见 项目复盘与路线转向.md §2 第一层）。
+# （这就是「审数据能不能用」与「算电机性能」的分界）。
 REQUIRED_PARAMS = ("Pcu", "Pfe", "Ta")
 SOURCE_TYPES = ("ai", "optimizer", "human", "external")
 TEMP_TYPES = ("mean", "hotspot")
