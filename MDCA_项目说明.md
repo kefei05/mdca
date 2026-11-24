@@ -74,28 +74,12 @@ A 路不需要它，也就不会重犯这个错——改成 `--plugins thermal,s
   A 路不产生温度结论，没有资格推荐送 Motor-CAD / Maxwell
 ```
 
-### 状态（一套词，不再分路）
+### 状态与分级
 
-```text
-—— 数据层 ——
-AUDIT_BLOCKED   输入被判死：契约 / 单位 / 口径冲突 / 哈希 / 负值 / 区间 /
-                参考温度 / 电磁链不闭合 / 热 KCL 不自洽 / 隐含热阻为负
-AUDIT_REVIEW    数据可用但需人看：超域 / 外推 / 未验证但声明保守 / 基准豁免
-AUDIT_PASS      全部过审（⚠ 只表示数据没有明显毛病，不表示可信、更不表示合格）
+一套词，不分路：数据层 `AUDIT_PASS` / `AUDIT_REVIEW` / `AUDIT_BLOCKED`，
+B 路启用时叠加温度层五状态，求解器失败才报 `SOLVER_UNKNOWN`，最后落到四档。
 
-—— 温度层（仅 B 路）——
-POINT_PASS / BOX_PASS / MODEL_FAIL / MODEL_REVIEW / COUPLING_FAILED
-
-—— 求解器层 ——
-SOLVER_UNKNOWN  求解器没给出结论：插件加载失败或插件缺参数
-                （数据不可用是 AUDIT_BLOCKED，两者不能混）
-
-   ↓ 四档
-淘汰（物理/数学上不可能、失稳、模型失效）
-继续优化（A 路全干净；或温度层通过但裕度 < 10K / 贴边 < 5K）
-人工复核（REVIEW / UNKNOWN / 缺校准 / 超域 / 外推 / 压力翻转 / 数据未验证）
-送外部（温度层通过 + 校准有效 + 在域内 + 裕度 ≥ 25K）
-```
+**完整定义与阈值依据见 [README.md](README.md) §五**——这里不重复，免得两处各写一份、日后改一处忘一处。
 
 ---
 
@@ -270,22 +254,9 @@ B 路（插件）能 / 不能
 
 ---
 
-## 七、可复现
+## 七、跑出来是什么样
 
-```bash
-# A 路（默认）
-python mdca.py audit cases/                       # 四条主算例
-python mdca.py audit cases_ai/AI01.json           # 看矛盾定位长什么样
-python mdca.py check 300                          # 17 条边界算例
-python road_a_backtest.py                         # 五大真实数据集，70 条断言
-
-# B 路（显式启用）
-python mdca.py audit benchmarks/ --plugins thermal,scaling
-python baseline_b_road.py --diff                  # 应输出「差异 0 个」
-
-# 全量
-powershell -File run_tests.ps1                    # 18 项
-```
+**命令见 [README.md](README.md) §二**，这里只放结果，不重复命令清单。
 
 A 路跑四个主算例的结论（全部 `AUDIT_PASS` 或 `AUDIT_BLOCKED`，没有温度）：
 
